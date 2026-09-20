@@ -1,0 +1,65 @@
+{
+  "scope": "Local CPU feasibility only. No Cloudflare deployment or cloud measurements.",
+  "temporary_artifact_directory": "/tmp/just-go-katago.OoRMip",
+  "engine": {
+    "version": "1.16.4",
+    "tag_commit": "4b8de63bea2bd8790db96cd6f8daf86dc87be6f7",
+    "source_url": "https://codeload.github.com/lightvector/KataGo/tar.gz/refs/tags/v1.16.4",
+    "source_sha256": "51b1a9b48053b0de910f44abf2cc95160de7b6d43bb22300e0b80ea0b3ed0ca8",
+    "backend": "EIGEN CPU; USE_AVX2=0; no Metal or GPU",
+    "compiler": "AppleClang 17.0.0.17000013",
+    "selection": "Pinned known release for reproducible CPU experiment, not a claim to be latest. Homebrew formula currently reports 1.18.2 but macOS arm64 bottles use METAL, so source-build was selected instead of a nonrepresentative GPU bottle.",
+    "license": "MIT except bundled third-party components with their own licenses",
+    "license_url": "https://raw.githubusercontent.com/lightvector/KataGo/v1.16.4/LICENSE"
+  },
+  "model": {
+    "name": "g170e-b10c128-s1141046784-d204142634",
+    "architecture": "10 blocks, 128 channels, extended-training network from 2020 g170 run",
+    "url": "https://katagoarchive.org/g170/neuralnets/g170e-b10c128-s1141046784-d204142634.bin.gz",
+    "sha256": "1a8e05a4ea3fca20dab79410cbb566c760767fcdd2fa0b701cfe259a84cc8b04",
+    "license": "CC0-1.0",
+    "license_url": "https://katagoarchive.org/g170/LICENSE.txt",
+    "limitations": "Old, small model chosen for CPU feasibility; measured low-visit search does not establish rank, production quality, or strength of modern larger models."
+  },
+  "dependencies": {
+    "eigen_version": "3.4.0",
+    "eigen_source_url": "https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz",
+    "eigen_source_sha256": "8586084f71f9bde545ee7fa6d00288b264a2b7ac3607b974e54d13e7162c1c72",
+    "cmake_version": "3.31.6",
+    "cmake_install": "python3 -m pip install --target /tmp/just-go-katago.OoRMip/python cmake==3.31.6",
+    "system_wide_installs": false,
+    "libzip": "Disabled with NO_LIBZIP=1; GTP, matches and analysis supported, writing self-play training data unavailable. GTP-driven self-play does not require training-data writer."
+  },
+  "build_commands": [
+    "tar -xzf /tmp/just-go-katago.OoRMip/katago-v1.16.4.tar.gz -C /tmp/just-go-katago.OoRMip",
+    "tar -xzf /tmp/just-go-katago.OoRMip/eigen-3.4.0.tar.gz -C /tmp/just-go-katago.OoRMip",
+    "/tmp/just-go-katago.OoRMip/python/cmake/data/bin/cmake -S /tmp/just-go-katago.OoRMip/eigen-3.4.0 -B /tmp/just-go-katago.OoRMip/eigen-build -DCMAKE_INSTALL_PREFIX=/tmp/just-go-katago.OoRMip/deps -DBUILD_TESTING=OFF",
+    "/tmp/just-go-katago.OoRMip/python/cmake/data/bin/cmake --install /tmp/just-go-katago.OoRMip/eigen-build",
+    "/tmp/just-go-katago.OoRMip/python/cmake/data/bin/cmake -S /tmp/just-go-katago.OoRMip/KataGo-1.16.4/cpp -B /tmp/just-go-katago.OoRMip/build -DUSE_BACKEND=EIGEN -DCMAKE_PREFIX_PATH=/tmp/just-go-katago.OoRMip/deps -DUSE_AVX2=0 -DNO_LIBZIP=1 -DNO_GIT_REVISION=1 -DCMAKE_BUILD_TYPE=Release",
+    "/tmp/just-go-katago.OoRMip/python/cmake/data/bin/cmake --build /tmp/just-go-katago.OoRMip/build --parallel 6"
+  ],
+  "resolved_setup_failure": "Initial CMake configuration supplied EIGEN3_INCLUDE_DIRS only, but non-MSVC find_package(Eigen3 REQUIRED) still required package metadata. Configuring and installing the header-only Eigen package into the temporary deps prefix resolved discovery.",
+  "resolved_protocol_assumptions": [
+    "GTP startup needs logAllGTPCommunication, logSearchInfo and resignThreshold when allowResignation is present, even false. Added documented config keys after real startup errors.",
+    "The initial experiment incorrectly expected input ko recapture to fail. Actual GTP and JSON replay accept it via tolerant move handling; source confirms Search::makeMove and analysis replay use tolerant legality. Corrected experiment records acceptance, separately asserts legal search avoids recapture and analysis policy marks it -1, and verifies occupied-point input rejection."
+  ],
+  "replay_command": "python3 experiments/katago/run.py --engine /tmp/just-go-katago.OoRMip/build/katago --model /tmp/just-go-katago.OoRMip/g170e-b10c128-s1141046784-d204142634.bin.gz --output experiments/katago/evidence.json",
+  "sources": [
+    "https://raw.githubusercontent.com/lightvector/KataGo/master/README.md",
+    "https://raw.githubusercontent.com/lightvector/KataGo/v1.16.4/Compiling.md",
+    "https://raw.githubusercontent.com/lightvector/KataGo/v1.16.4/docs/GTP_Extensions.md",
+    "https://raw.githubusercontent.com/lightvector/KataGo/v1.16.4/docs/Analysis_Engine.md",
+    "https://github.com/lightvector/KataGo/blob/v1.16.4/cpp/search/search.cpp",
+    "https://github.com/lightvector/KataGo/blob/v1.16.4/cpp/command/analysis.cpp",
+    "https://katagoarchive.org/g170/neuralnets/README.txt",
+    "https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/k/katago.rb",
+    "https://formulae.brew.sh/api/formula/katago.json"
+  ],
+  "protocol_caveats": [
+    "KataGo explicitly does not claim named country rules exactly match official rules; chinese-ogs here is POSITIONAL ko, AREA scoring, suicide false, tax NONE, whiteHandicapBonus N, friendlyPassOk true.",
+    "Use the complete ordered move history, board dimensions, rules and komi for restoration, not a bare board snapshot. set_position intentionally loses ko/superko and capture history.",
+    "Actual tested replay interfaces accept immediate ko recapture. Successful play/query ingestion is NOT an authoritative legal-move validator; independent application legality is mandatory.",
+    "JSON analysis can warn and substitute nearest supported rules for an older model. A production adapter must reject or explicitly handle warnings rather than assume parity.",
+    "GTP two-pass final_score output is engine scoring evidence, not independent formal-rules certification or a dead-stone adjudication UI."
+  ]
+}

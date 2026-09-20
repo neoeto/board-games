@@ -1,0 +1,60 @@
+{
+  "status": "documentary investigation complete; formal-rule implementation and certification not performed",
+  "baselines": {
+    "go": {
+      "candidate": "cn-go-2002",
+      "scope": "19x19; 9x9, 13x13 and handicap need explicitly versioned application supplements",
+      "sources": [
+        {"url": "http://wqwh.weiqi.org.cn/rules/", "quality": "association-hosted substantive text, not edition-dated; HTTPS certificate failed in research, HTTP used", "clauses": ["1", "6", "9", "11", "20", "21"]},
+        {"url": "https://m.cv-cs.com/nd.jsp?groupId=258&id=8721&mid=547", "quality": "third-party 2002-edition reproduction; some non-core formulas damaged"},
+        {"url": "https://sports.sina.com.cn/go/2025-05-08/doc-inevvhce5578732.shtml", "quality": "media reproduction of 2025 national team event regulation, section ten adopts 2002 and supplies rare-cycle rule"}
+      ],
+      "confirmed": [
+        "Art9 counts live stones and enclosed points, and splits neutral points between living groups equally.",
+        "Art11: black gives 3.75 zi, equivalent to 7.5 points in two-side difference units. Black total185 wins0.75zi;184 loses0.25zi;184.5 wins0.25zi.",
+        "Art20 prohibits immediate ko recapture and fake-life multi-ko cycles; rare cycles may use event supplements. A bare positional-superko implementation is not automatically full national-rule parity.",
+        "Art21.4: life/death disagreement resumes play with the player claiming death moving first. Art21.3 does not allow reopening merely because a missed tactic was discovered after agreement."
+      ]
+    },
+    "xiangqi": {
+      "candidate": "cn-xiangqi-2020",
+      "sources": [
+        {"url": "https://www.sport.gov.cn/qpzx/n5387/c30016667/content.html", "quality": "issuer notice dated2026-09-09, national women's league section5(1) explicitly adopts2020"},
+        {"url": "https://www.sport.gov.cn/qpzx/n5384/c29447384/content.html", "quality": "issuer notice dated2026-02-27 adopting2020"},
+        {"url": "https://wdd66d.top/downloads/qigui/Xqqg2020.pdf", "quality": "113-page third-party reproduction, not issuer-authenticated; pp15-18 repetition/adjudication, p20 fast games"},
+        {"url": "https://cnchess.net/rules/rules2020.html", "quality": "navigable third-party reproduction; transcription defects exist"}
+      ],
+      "confirmed": [
+        "Checkmate and stalemate both lose.",
+        "Art23: cycle three times plus an adjudication request; perpetual check loses, other cases can require a change within two rounds. Special nine-round patterns also exist.",
+        "Art24 includes killing threats, mixed check/kill/chase and chasing one or multiple targets. This is not a simple attacked-square test.",
+        "Normal natural limit is60 capture-free rounds with claimant-check accounting; fast-game Art29 uses50 rounds and an8-check cap rather than normal10.",
+        "Art4.3 contains an early-game rule through round25 requiring red to change an otherwise unchanging-draw cycle."
+      ],
+      "transcriptionWarning": "cnchess ChapterFiveSection23 clause23.5.2.3 incorrectly refers to23.5.4; corroborating PDF refers to23.4. Do not blindly copy HTML references."
+    }
+  },
+  "differences": [
+    {"topic": "Go repetition", "engine": "KataGo selectable SIMPLE/POSITIONAL/SITUATIONAL rules", "decision": "Do not treat any preset name as certified Chinese2002; explicitly resolve Art20 exceptions.", "source": "https://lightvector.github.io/KataGo/rules.html"},
+    {"topic": "Go ending", "engine": "GTP final_score / ownership estimates", "decision": "Application owns agreement and dispute resumption; estimate is not a formal verdict."},
+    {"topic": "Go neutral points", "engine": "Area scoring may leave mixed-border points unawarded", "decision": "Normalize one-side counts/margin units before displaying Chinese zi scores."},
+    {"topic": "Xiangqi repetition", "engine": "Pikafish program rules2023-11-22, world/former Asian basis, third board-and-side occurrence", "decision": "Not Chinese national2020. Independent national adjudication required.", "source": "https://pikafish.org/rule.html"},
+    {"topic": "Xiangqi chase", "engine": "Program categories check2/chase1/allowed0; common chased victim; no kill category", "decision": "Cannot translate program-rule results into domestic2020 by relabeling."},
+    {"topic": "Xiangqi limits", "engine": "Automatic120 adjusted plies, both sides' checks capped10", "decision": "Not identical to normal claim-based accounting; not compatible with fast50-round rule."}
+  ],
+  "proposedAcceptanceCases": [
+    {"id": "go-score-units", "source": "Go Art11", "inputBlackTotals": [185,184,184.5], "expectedBlackMarginZi": [0.75,-0.25,0.25], "executed": false},
+    {"id": "go-death-dispute", "source": "Go Art21.4", "expected": "Resume with death claimant first, no automatic stone deletion", "executed": false},
+    {"id": "go-missed-tactic", "source": "Go Art21.3", "expected": "Do not reopen settled game merely for missed tactic", "executed": false},
+    {"id": "xiangqi-long-check", "source": "Xiangqi Art23.5.1", "expected": "Offender loses at valid adjudication", "executed": false},
+    {"id": "xiangqi-long-kill", "source": "https://cnchess.net/rules/ChaptEight.html figure7", "expected": "Red required to change, loses if not; not immediate third-position loss", "executed": false},
+    {"id": "xiangqi-natural-fast", "source": "Xiangqi Art29.1", "expected": "50-round eligible claim/review, cap8 checks; not120 plies", "executed": false}
+  ],
+  "remainingBeforeFormalCompliance": [
+    "Acquire authenticated complete Xiangqi rule edition/errata or adjudicator review for transcription-sensitive cases.",
+    "Freeze small-board komi, handicap, rare Go cycles, dispute ordering/clocks and online claims supplements.",
+    "Implement independent legal-move and history-sensitive adjudication layer; engines are not the sole oracle.",
+    "Transcribe rule diagrams faithfully and execute a sourced conformance corpus, including ambiguous counting and terminal precedence."
+  ],
+  "latestVersionClaim": "Recent use verified; no unqualified claim that no later amendment exists."
+}

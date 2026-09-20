@@ -1,0 +1,85 @@
+{
+  "release": {
+    "name": "Pikafish 2026-09-06",
+    "tag": "Pikafish-2026-09-06",
+    "commit": "4c17cee11f888ae1d48a9494f2e2239f019f0a1f",
+    "url": "https://github.com/official-pikafish/Pikafish/releases/tag/Pikafish-2026-09-06",
+    "asset_listing": "https://github.com/official-pikafish/Pikafish/releases/expanded_assets/Pikafish-2026-09-06",
+    "archive_url": "https://github.com/official-pikafish/Pikafish/releases/download/Pikafish-2026-09-06/Pikafish.2026-09-06.7z",
+    "archive_sha256": "41952bbfe2520faceb5902c69e6ab4845cc999841d2b49a95cc1be7867a25e5b",
+    "archive_hash_matches_github_asset_listing": true,
+    "source_url": "https://codeload.github.com/official-pikafish/Pikafish/tar.gz/4c17cee11f888ae1d48a9494f2e2239f019f0a1f",
+    "source_archive_sha256": "dde6748080072b0fc9152eb8e559bd9f1db6cb22d8242db7f87c2066f2c2e366",
+    "source_modified": false,
+    "build_performed": false,
+    "selection": "Official prebuilt universal macOS executable includes arm64 and x86_64; native arm64 host. No compilation or global package install needed.",
+    "binary_sha256": "3a11f9034ef723bb4068e4cf88a79a12d99507474ba118fa916ec2cecd4f4abe",
+    "binary_bytes": 6300248,
+    "model_name": "pikafish.nnue bundled in the same 2026-09-06 release",
+    "model_sha256": "7d13d73569a9b571ba0eb20cf1596247bc2a42738967e61afef6482b231e900e",
+    "model_bytes": 50706378,
+    "runtime_model_description": "64MiB, (62083, 1024, 32, 32, 1); shared-memory network replica"
+  },
+  "acquisition_observations": [
+    "GitHub API releases/latest returned HTTP 403; official HTML release page and expanded_assets succeeded.",
+    "curl fetched the official release archive in 19.60 seconds; shasum matched the publisher's asset hash.",
+    "macOS system tar successfully extracted 7z without additional packages.",
+    "Archive extraction did not leave the macOS executable runnable: first invocation returned permission denied, resolved with chmod u+x.",
+    "Source archive download succeeded in 1.80 seconds; source retained outside repository for exact revision provenance. Prebuilt binary used for all measurements."
+  ],
+  "replay_commands": [
+    "mktemp -d /tmp/just-go-pikafish.XXXXXX",
+    "Use the returned temporary directory in place of /tmp/just-go-pikafish.h0iRju in the following commands.",
+    "curl -fL --retry 2 --connect-timeout 20 --max-time 180 -o /tmp/just-go-pikafish.h0iRju/release.7z https://github.com/official-pikafish/Pikafish/releases/download/Pikafish-2026-09-06/Pikafish.2026-09-06.7z",
+    "shasum -a 256 /tmp/just-go-pikafish.h0iRju/release.7z",
+    "Compare the archive hash to archive_sha256 above before extraction or execution.",
+    "tar -xf /tmp/just-go-pikafish.h0iRju/release.7z -C /tmp/just-go-pikafish.h0iRju",
+    "chmod u+x /tmp/just-go-pikafish.h0iRju/Pikafish-MacOS-universal",
+    "python3 experiments/pikafish/probe.py --engine /tmp/just-go-pikafish.h0iRju/Pikafish-MacOS-universal --model /tmp/just-go-pikafish.h0iRju/pikafish.nnue --output /tmp/just-go-pikafish.h0iRju/replay.json"
+  ],
+  "protocol": {
+    "name": "UCI with Xiangqi coordinates a-i / 0-9",
+    "official_docs": "https://github.com/official-pikafish/Pikafish/wiki/UCI-%26-Commands",
+    "build_docs": "https://github.com/official-pikafish/Pikafish/wiki/Compiling-from-source",
+    "download_model_docs": "https://github.com/official-pikafish/Pikafish/wiki/Download-and-usage",
+    "exercised": [
+      "uci -> identity/options/uciok",
+      "setoption Threads=1, Hash=64, Ponder=false, absolute EvalFile; isready -> readyok",
+      "position startpos; go depth 10; go movetime 250",
+      "position startpos moves h2e2 h9g7 h0g2 g6g5; go depth 10",
+      "go infinite; isready while search remains active; stop -> exactly one observed bestmove; ucinewgame; isready; subsequent search",
+      "ucinewgame reset after another game and cancelled search restores initial FEN and deterministic fixed-depth bestmove/score/PV/node count",
+      "160 plies of full self-play from startpos, 30ms requested per search, replaying complete move history every turn",
+      "d and go perft 1 for FEN and engine legal-move-set checks every self-play ply",
+      "terminal perft has zero legal moves; terminal search reports info depth 0 score mate 0 and bestmove (none)",
+      "quit; clean exit code 0"
+    ],
+    "strict_input_note": "Release notes document invalid FEN/UCI commands as CRITICAL ERROR followed by immediate termination. Negative-input handling was not exercised; production adapter must validate inputs and recover process failures."
+  },
+  "licensing": {
+    "engine": "GPL version 3. Exact license is Copying.txt from the release; distribution requires matching source and license obligations.",
+    "engine_license_url": "https://github.com/official-pikafish/Pikafish/blob/4c17cee11f888ae1d48a9494f2e2239f019f0a1f/Copying.txt",
+    "network_license_source": "NNUE-License.md inside the hash-verified official release archive; not merely the repository GPL license",
+    "network_license_verbatim": "### NNUE-License\n\nAny usage of the Pikafish weights constitutes agreement to this License.\n\nThe weights file (pikafish.nnue) released with the Pikafish and the weights file further derived from them are:\n1. Only for legal use, any consequences caused by any use beyond the legal scope (e.g. online cheating) shall be borne by the user.\n2. No commercial use without permission.\n\nThe use of nnue weights for commercial purposes by [these individuals and organizations](https://pikafish.org/list.html) is permitted.\n\nHowever, the weights we train for the xiangqi variant of the [Fairy-Stockfish](https://github.com/fairy-stockfish/Fairy-Stockfish) are licensed under [CC0 license](https://github.com/official-stockfish/networks/blob/master/LICENSE). Even though they are derived from the Pikafish training data and follow the same training procedure, they are not constrained by this license.\n",
+    "commercial_gate": "Do not assume these weights may be commercially deployed. Obtain permission, verify an existing applicable permission, or select a separately licensed compatible engine/model combination. No commercial permission was obtained in this experiment.",
+    "training_data_note": "Repository README acknowledges Px0 training data under ODbL; that does not replace the bundled NNUE weights license."
+  },
+  "rules_boundary": {
+    "engine_rules_url": "https://www.pikafish.com/rule.html",
+    "engine_rules_revision": "2023-11-22",
+    "engine_rules_basis": "Official computer-competition rules explicitly based on world/former Asian rules, not domestic 2020.",
+    "engine_cycle": "Same piece placement and side-to-move on third occurrence ends game; cycle classification perpetual check=2, perpetual chase=1, allowed=0. Higher offender loses; equal grades draw. Perpetual chase requires a common target chased on every move and escaping on every reply; no check move anywhere in the cycle for chase definition.",
+    "domestic_2020_secondary_transcription": "https://cnchess.net/rules/ChapterSixSection24.html",
+    "grounded_difference": "Domestic 2020 clauses 24.10-24.13 include perpetual killing, chasing one OR multiple targets, and mixed check/kill/chase cycles as forbidden. Pikafish's published classification has only perpetual check, perpetual chase, allowed; these are not equivalent rule contracts.",
+    "not_claimed": "No exhaustive cycle-rule conformance corpus was executed. No domestic-2020 formal result is inferred from UCI score, bestmove, engine perft, or self-play termination. An independent formal adjudicator remains required for domestic-2020 application rules."
+  },
+  "measurement_limits": [
+    "All measurements are local Apple M1 Pro macOS arm64, not Cloudflare Containers or Workers.",
+    "One process with one search thread and 64MiB hash; no throughput/concurrency/load test.",
+    "Timing is wall-clock from Python perf_counter; startup includes process launch and configured NNUE readiness but is not an OS-cache-cold benchmark.",
+    "RSS snapshots from ps are instantaneous KiB, not total unique memory. Child ru_maxrss on macOS is bytes, includes child subprocess accounting, and is not a dedicated engine-only peak sampler.",
+    "Self-play move validation uses the same engine perft legal set, not an independent Xiangqi rules implementation.",
+    "30ms is a request, not a strict deadline: measured maximum self-play response was 59.688ms. Production must have external deadlines/cancellation/process recovery.",
+    "No browser UI, WASM build, remote execution, Cloudflare deployment, or domestic-2020 adjudication was performed."
+  ]
+}

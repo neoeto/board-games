@@ -1,0 +1,51 @@
+{
+  "kind": "feasibility-investigation",
+  "observedAt": "2026-09-20",
+  "deploymentStatus": "blocked",
+  "authentication": {
+    "command": "npx --yes wrangler@latest whoami",
+    "wranglerVersion": "4.134.0",
+    "authenticated": true,
+    "containersWriteScope": true,
+    "cloudchamberWriteScope": true
+  },
+  "eligibility": {
+    "command": "npx --yes wrangler@latest containers list",
+    "exitCode": 1,
+    "error": "Unauthorized: You do not have access to Cloudflare Containers. Deploying containers requires the Workers Paid plan.",
+    "requiredUserAction": "Enable Workers Paid for the intended account. No subscription was changed."
+  },
+  "localContainerRuntime": {
+    "command": "docker info",
+    "runtime": "Podman 5.6.1 darwin/arm64",
+    "exitCode": 125,
+    "result": "Existing Podman machine socket refused connection; machine list shows existing machines. No VM was started because cloud account eligibility blocks deployment."
+  },
+  "cloudPerformance": null,
+  "cloudCostMeasured": null,
+  "requirements": {
+    "containerImagePlatform": "linux/amd64",
+    "localMacPerformanceRepresentsCloud": false,
+    "gpuAssumedAvailable": false,
+    "containerDiskPersistent": false
+  },
+  "pricingReference": {
+    "currency": "USD",
+    "workersPaidMonthlyBase": 5,
+    "cpuPerActiveVcpuSecond": 0.000020,
+    "memoryPerProvisionedGibSecondWhileRunning": 0.0000025,
+    "diskPerProvisionedGbSecondWhileRunning": 0.00000007,
+    "monthlyIncluded": {"cpuVcpuMinutes": 375, "memoryGibHours": 25, "diskGbHours": 200},
+    "additionalBilling": ["Workers", "Durable Objects", "network egress", "logs where applicable"],
+    "examplesBeforeAllowances": [
+      {"instance": "standard-2", "vcpu": 1, "memoryGib": 6, "diskGb": 12, "allocatedMemoryDiskPerHour": 0.057024, "fullyBusyPerHour": 0.129024, "allocatedMemoryDiskFor720Hours": 41.05728},
+      {"instance": "standard-3", "vcpu": 2, "memoryGib": 8, "diskGb": 16, "allocatedMemoryDiskPerHour": 0.076032, "fullyBusyPerHour": 0.220032, "allocatedMemoryDiskFor720Hours": 54.74304}
+    ],
+    "warning": "Formula examples, not measured bills. Sleeping instances stop compute charges; running idle instances still incur provisioned memory/disk charges. No actual cloud timing or per-game cost is available."
+  },
+  "sources": [
+    "https://developers.cloudflare.com/containers/get-started/",
+    "https://developers.cloudflare.com/containers/platform/pricing/",
+    "https://developers.cloudflare.com/containers/faq/"
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "status": "local feasibility demonstrated; cloud and formal-rule readiness not established",
+  "scope": "Investigation only, no application UI or production deployment",
+  "recommendation": {
+    "go": "Continue evaluating KataGo CPU in Cloudflare Containers, but do not freeze this older experimental engine/model as the production version.",
+    "xiangqi": "Pikafish is locally runnable; the bundled model license and national-rule mismatch must be resolved before production selection.",
+    "rules": "Use Chinese Go2002 and Chinese Xiangqi2020 as versioned documentary baselines with explicit online/small-board supplements; never equate engine preset names with national compliance.",
+    "architecture": "Separate authoritative game legality/history/adjudication from engine move suggestions. Containers run native engines; do not put these measured native processes in ordinary Workers."
+  },
+  "evidence": {
+    "go": ["katago/provenance.json", "katago/evidence.json", "katago/concurrency.json"],
+    "xiangqi": ["pikafish/provenance.json", "pikafish/evidence.json", "pikafish/verification.json", "pikafish/concurrency.json"],
+    "rules": "rules-evidence.json",
+    "cloud": "cloudflare-evidence.json"
+  },
+  "verifiedLocally": [
+    "Real KataGo1.16.4 Eigen CPU build with hash-pinned CC0 g170 b10c128 model; real Pikafish2026-09-06 release and bundled NNUE, with hashes.",
+    "Go9/13/19 move generation, ordered-history replay, SGF restoration, undo, komi, pass, JSON ownership/policy outputs.",
+    "Go ko input is permissive, while search avoids immediate recapture and policy marks it illegal. Occupied-point JSON replay is rejected.",
+    "Go cancellable search leaves board unchanged; a complete9x9 self-play finishes by consecutive passes.",
+    "Xiangqi handshake, historical positions, move generation, stop, reset isolation, self-play. Original160-ply run ended with no legal moves; verification131-ply run stopped at repeated position without assigning formal verdict.",
+    "Sequentially isolated local1/5/10-process concurrency batches for both engines;5 measured queries per process, each Go board size tested."
+  ],
+  "measurementsNotClaims": [
+    "Go 32-visit warm-process batch P95 milliseconds at concurrency1/5/10:9x9=347.254/570.149/1124.885;13x13=337.769/580.459/1128.733;19x19=357.848/758.417/1289.231.",
+    "Xiangqi with250ms search budget batch P95 milliseconds at concurrency1/5/10=252.673/259.477/262.527. This does not mean fixed strength: measured node throughput and completed depth decrease with contention.",
+    "Small local opening-position samples are not production SLO, playing-rank calibration, worst-case analysis, cloud cold starts or cloud capacity.",
+    "No external independent legality/adjudication oracle was implemented; engine self-consistency is not formal-rule certification. No complete13x13/19x19 self-play or exhaustive rare-cycle fixture corpus was run."
+  ],
+  "gates": [
+    {"id": "cloud-subscription", "state": "blocked", "evidence": "Authenticated containers list denied access and explicitly required Workers Paid", "action": "User enables Workers Paid on intended account before cloud deployments/measurements; no plan changes were made."},
+    {"id": "model-license", "state": "conditional", "evidence": "Hash-verified Pikafish release NNUE-License.md says no commercial use without permission", "action": "For commercial use, obtain applicable permission or evaluate a separately licensed compatible engine/model. Engine GPLv3 alone is insufficient."},
+    {"id": "formal-adjudication", "state": "not implemented", "evidence": "Sourced engine/national rule differences in rules-evidence.json", "action": "Implement and verify independent adjudication against authenticated rules and diagram corpus; freeze online supplements."},
+    {"id": "cloud-performance-cost", "state": "unmeasured", "action": "After eligibility: build linux/amd64 images, verify runtime, cold starts, representative mid/endgames, full games,1/5/10 concurrency and billed-resource cost. Local Mac numbers cannot replace this."},
+    {"id": "difficulty", "state": "uncalibrated", "action": "Validate beginner/normal/strong behavior; timing and visit limits alone do not establish human rank or pleasant beginner play."}
+  ],
+  "cost": {
+    "source": "https://developers.cloudflare.com/containers/platform/pricing/",
+    "workersPaidBaseUsdMonthly": 5,
+    "standard2ProvisionedIdleMemoryDiskUsdPerHourBeforeAllowances": 0.057024,
+    "standard2FullyBusyUsdPerHourBeforeAllowances": 0.129024,
+    "warning": "Illustrative list-price arithmetic only; not per-game measured cost. Workers/DO/network/logs additional where applicable, allowances not deducted."
+  }
+}
