@@ -1,0 +1,30 @@
+Pikafish browser engine (optional asset)
+=========================================
+
+Pinned upstream: Pikafish-2026-09-06
+Commit: 4c17cee11f888ae1d48a9494f2e2239f019f0a1f
+Source: https://github.com/official-pikafish/Pikafish/tree/4c17cee11f888ae1d48a9494f2e2239f019f0a1f
+
+Pikafish is free software licensed under the GNU General Public License,
+version 3 or (at your option) any later version. It is distributed without
+any warranty. The complete upstream Copying.txt and corresponding pinned
+source archive are copied beside deployable binaries by
+scripts/engines/prepare-pikafish.sh.
+
+Pikafish NNUE weights notice
+============================
+
+Any usage of the Pikafish weights constitutes agreement to this License.
+
+The weights file (pikafish.nnue) released with the Pikafish and the weights
+file further derived from them are:
+1. Only for legal use, any consequences caused by any use beyond the legal
+   scope (e.g. online cheating) shall be borne by the user.
+2. No commercial use without permission.
+
+The use of NNUE weights for commercial purposes by the individuals and
+organizations listed at https://pikafish.org/list.html is permitted.
+
+The preparation script copies the complete NNUE-License.md verbatim from the
+hash-verified official 2026-09-06 release archive. This project makes no
+commercial-permission claim.

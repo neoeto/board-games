@@ -1,0 +1,17 @@
+Just Go browser engine assets
+
+The generated WebAssembly engine binaries and model files are intentionally not
+checked into this source tree. Prepare them locally with the pinned preparation
+scripts in scripts/engines/ after installing the required build tools. The
+chunk-model.mjs utility can split a locally prepared model into SHA-256-verified
+chunks smaller than Cloudflare's 25 MiB asset limit.
+
+There are no fake binaries in this directory. The application does not download
+third-party engine binaries, model files, source archives, or build tools at
+runtime. Runtime requests are limited to assets that have been explicitly
+prepared and deployed by the application owner.
+
+Keep every upstream license and provenance notice beside its prepared asset.
+The existing engine-specific license files describe the terms for assets that
+are prepared locally; this note is not a license for any upstream engine or
+model.

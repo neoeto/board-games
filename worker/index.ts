@@ -1,7 +1,41 @@
-const ERROR_HEADERS = {
+const ISOLATION_HEADERS = Object.freeze({
+  "Cross-Origin-Embedder-Policy": "require-corp",
+  "Cross-Origin-Opener-Policy": "same-origin",
+  "Cross-Origin-Resource-Policy": "same-origin",
+  "Permissions-Policy": "cross-origin-isolated=(self)",
+});
+
+const ERROR_HEADERS = Object.freeze({
   "cache-control": "no-store",
   "content-type": "application/json; charset=utf-8",
-} as const;
+});
+
+function withIsolationHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+
+  for (const [name, value] of Object.entries(ISOLATION_HEADERS)) {
+    headers.set(name, value);
+  }
+
+  return new Response(response.body, {
+    headers,
+    status: response.status,
+    statusText: response.statusText,
+  });
+}
+
+function isHtmlOrWorkerResponse(response: Response): boolean {
+  if (response.status < 200 || response.status >= 300) {
+    return false;
+  }
+
+  const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+
+  return contentType.startsWith("text/html") ||
+    contentType.startsWith("application/javascript") ||
+    contentType.startsWith("text/javascript") ||
+    contentType.startsWith("application/wasm");
+}
 
 function errorResponse(
   request: Request,
@@ -13,7 +47,7 @@ function errorResponse(
     ? null
     : JSON.stringify({ error: { code, message } });
 
-  return new Response(body, { status, headers: ERROR_HEADERS });
+  return withIsolationHeaders(new Response(body, { status, headers: ERROR_HEADERS }));
 }
 
 export default {
@@ -22,7 +56,9 @@ export default {
       const response = await env.ASSETS.fetch(request);
 
       if (response.status !== 404) {
-        return response;
+        return isHtmlOrWorkerResponse(response)
+          ? withIsolationHeaders(response)
+          : response;
       }
 
       return errorResponse(

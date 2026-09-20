@@ -12,7 +12,8 @@
     "build:client": "vite build",
     "typecheck": "npm run cf-typegen && tsc -b",
     "cf-typegen": "wrangler types",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:rules": "node --experimental-strip-types --test src/games/go.test.ts src/games/xiangqi.test.ts"
   },
   "dependencies": {
     "react": "^19.3.0",

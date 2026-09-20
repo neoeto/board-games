@@ -1,4 +1,4 @@
-@layer reset, base, layout, components, utilities;
+@layer reset, base, layout, components, responsive;
 
 @layer reset {
   *,
@@ -8,7 +8,7 @@
   }
 
   html {
-    scroll-behavior: smooth;
+    color-scheme: light;
   }
 
   body,
@@ -20,548 +20,849 @@
     margin: 0;
   }
 
-  button {
+  button,
+  select {
     font: inherit;
   }
 }
 
 @layer base {
   :root {
-    color: #19251f;
-    background: #d8c49a;
-    font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+    color: #1e2a24;
+    background: #b99561;
+    font-family: "Avenir Next", Avenir, "PingFang SC", "Microsoft YaHei", sans-serif;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
-    --ink: #19251f;
-    --ink-soft: #506057;
-    --forest: #173f35;
-    --forest-light: #245f4f;
-    --paper: #f3ead5;
-    --paper-deep: #e6d5ae;
-    --wood: #c99855;
-    --wood-dark: #8c5c2f;
-    --line: rgb(48 45 31 / 22%);
-    --radius: 2px;
+    --ink: #1e2a24;
+    --muted: #647067;
+    --forest: #183e32;
+    --forest-bright: #275f4e;
+    --red: #a13b2f;
+    --paper: #f1e8d2;
+    --paper-deep: #e2d1aa;
+    --wood: #c99450;
+    --wood-light: #ddb06c;
+    --wood-dark: #805126;
+    --line: rgb(42 54 45 / 20%);
+    --shadow: rgb(66 42 19 / 24%);
+    --radius: 3px;
   }
 
   body {
     min-width: 320px;
     min-height: 100dvh;
     background:
-      linear-gradient(90deg, rgb(58 43 23 / 4%) 1px, transparent 1px),
-      linear-gradient(180deg, #e2d2ae 0%, #c9ad7c 100%);
-    background-size: 74px 100%, 100% 100%;
+      linear-gradient(90deg, rgb(67 44 19 / 8%) 1px, transparent 1px),
+      linear-gradient(145deg, #c8aa79, #a57c49);
+    background-size: 88px 100%, 100% 100%;
   }
 
   button,
-  a {
-    -webkit-tap-highlight-color: transparent;
+  select {
+    color: inherit;
+  }
+
+  button:not(:disabled),
+  select:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  select:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  :focus-visible {
+    outline: 3px solid #bd3f31;
+    outline-offset: 3px;
   }
 
   ::selection {
-    color: #fffdf6;
-    background: var(--forest-light);
+    color: #fffaf0;
+    background: var(--forest);
   }
 }
 
 @layer layout {
   .app-shell {
-    width: min(100%, 1480px);
+    width: min(100%, 1540px);
     min-height: 100dvh;
     margin: 0 auto;
     background:
-      radial-gradient(circle at 72% 8%, rgb(255 250 231 / 42%), transparent 32%),
+      radial-gradient(circle at 76% 3%, rgb(255 255 255 / 42%), transparent 28%),
       var(--paper);
-    border-inline: 1px solid rgb(62 48 28 / 12%);
-    box-shadow: 0 0 70px rgb(80 53 24 / 18%);
+    border-inline: 1px solid rgb(55 40 23 / 16%);
+    box-shadow: 0 0 80px rgb(50 32 15 / 24%);
   }
 
   .site-header {
     display: flex;
+    min-height: 74px;
     align-items: center;
     justify-content: space-between;
-    min-height: 76px;
-    padding: 14px clamp(22px, 4vw, 62px);
+    gap: 24px;
+    padding: 12px clamp(20px, 4vw, 62px);
     border-bottom: 1px solid var(--line);
   }
 
   .main-content {
-    padding: clamp(42px, 6vw, 84px) clamp(22px, 6vw, 92px) clamp(54px, 7vw, 96px);
+    padding: clamp(34px, 5vw, 72px) clamp(18px, 5vw, 76px) clamp(52px, 7vw, 96px);
   }
 
-  .intro {
+  .game-heading {
     display: grid;
-    grid-template-columns: minmax(0, 1.55fr) minmax(240px, 0.6fr);
-    column-gap: clamp(32px, 8vw, 140px);
+    grid-template-columns: minmax(0, 1.2fr) minmax(240px, 0.55fr);
     align-items: end;
-    max-width: 1180px;
+    gap: 32px clamp(36px, 8vw, 130px);
   }
 
-  .intro .eyebrow {
-    grid-column: 1 / -1;
-  }
-
-  .game-room {
+  .game-tabs {
     display: grid;
-    grid-template-columns: minmax(300px, 0.82fr) minmax(420px, 1.18fr);
-    gap: clamp(34px, 7vw, 110px);
-    align-items: center;
-    margin-top: clamp(58px, 9vw, 120px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 600px;
+    margin-top: clamp(34px, 5vw, 62px);
+    border: 1px solid var(--line);
   }
 
-  .game-selector {
+  .play-room {
+    display: grid;
+    grid-template-columns: minmax(250px, 0.37fr) minmax(520px, 1fr);
+    align-items: start;
+    gap: clamp(28px, 5vw, 74px);
+    margin-top: clamp(28px, 4vw, 48px);
+  }
+
+  .control-rail {
     min-width: 0;
+    padding-top: 12px;
+  }
+
+  .board-panel {
+    min-width: 0;
+    padding: clamp(18px, 3.2vw, 42px);
+    overflow: hidden;
+    color: #f7f0df;
+    background:
+      repeating-linear-gradient(90deg, transparent 0 58px, rgb(255 255 255 / 2%) 59px),
+      linear-gradient(145deg, #214b3e, #123229);
+    border-radius: var(--radius);
+    box-shadow: 0 30px 60px rgb(42 40 28 / 24%);
   }
 
   .site-footer {
     display: flex;
     justify-content: space-between;
-    gap: 28px;
-    padding: 28px clamp(22px, 4vw, 62px);
+    gap: 24px;
+    padding: 24px clamp(20px, 4vw, 62px);
+    color: var(--muted);
     border-top: 1px solid var(--line);
-    color: var(--ink-soft);
-    font-size: 0.78rem;
+    font-size: 0.76rem;
   }
 }
 
 @layer components {
   .brand {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 12px;
-    color: var(--ink);
-    font-family: "Iowan Old Style", "Songti SC", Georgia, serif;
-    font-size: 1.15rem;
-    font-weight: 700;
-    letter-spacing: 0.01em;
-    text-decoration: none;
   }
 
   .brand-mark {
     display: grid;
-    width: 34px;
-    height: 34px;
+    width: 38px;
+    height: 38px;
     place-items: center;
-    color: #fffdf6;
+    color: #fff8e9;
     background: var(--forest);
     border-radius: var(--radius);
-    font-family: "Songti SC", "Noto Serif CJK SC", serif;
-    font-size: 1rem;
-    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 18%);
+    font-family: "Songti SC", "STSong", serif;
+    font-size: 1.2rem;
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 20%);
   }
 
-  .header-note {
-    color: var(--ink-soft);
-    font-size: 0.72rem;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
+  .brand > span:last-child {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
   }
 
-  .eyebrow,
-  .section-kicker,
-  .stage-caption span,
-  .selection-details dt {
-    color: var(--forest-light);
-    font-size: 0.68rem;
+  .brand strong,
+  .game-heading h1,
+  .control-heading h2,
+  .board-title strong {
+    font-family: "Songti SC", "STSong", "Noto Serif CJK SC", Georgia, serif;
+  }
+
+  .brand strong {
+    font-size: 1.08rem;
+    letter-spacing: 0.16em;
+  }
+
+  .brand small,
+  .site-header > p,
+  .kicker,
+  .status-label,
+  .engine-report > span,
+  .board-title span {
+    font-size: 0.65rem;
     font-weight: 700;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
+    letter-spacing: 0.14em;
   }
 
-  .intro h1 {
-    max-width: 830px;
-    margin-top: 17px;
-    color: var(--ink);
-    font-family: "Iowan Old Style", "Songti SC", Georgia, serif;
-    font-size: clamp(3.1rem, 6.3vw, 6.8rem);
+  .brand small {
+    color: var(--muted);
+    font-size: 0.5rem;
+  }
+
+  .site-header > p {
+    color: var(--muted);
+  }
+
+  .kicker {
+    color: var(--forest-bright);
+  }
+
+  .game-heading h1 {
+    margin-top: 12px;
+    font-size: clamp(2.6rem, 5vw, 5.6rem);
     font-weight: 500;
-    letter-spacing: -0.055em;
-    line-height: 0.92;
+    letter-spacing: -0.06em;
+    line-height: 0.98;
   }
 
-  .intro-copy {
-    max-width: 33ch;
-    padding-bottom: 0.55rem;
-    color: var(--ink-soft);
-    font-size: clamp(0.96rem, 1.4vw, 1.08rem);
-    line-height: 1.7;
+  .game-heading > p {
+    max-width: 32ch;
+    padding-bottom: 0.4rem;
+    color: var(--muted);
+    font-size: 0.96rem;
+    line-height: 1.75;
   }
 
-  .section-heading {
-    max-width: 550px;
-  }
-
-  .section-heading h2 {
-    margin-top: 13px;
-    color: var(--ink);
-    font-family: "Iowan Old Style", "Songti SC", Georgia, serif;
-    font-size: clamp(2rem, 3.1vw, 3.2rem);
-    font-weight: 500;
-    letter-spacing: -0.035em;
-    line-height: 1.04;
-  }
-
-  .game-options {
-    margin-top: 40px;
-    border-top: 1px solid var(--line);
-  }
-
-  .game-option {
-    display: grid;
-    grid-template-columns: 38px 1fr 18px;
-    gap: 14px;
-    align-items: center;
-    width: 100%;
-    padding: 22px 2px;
-    color: var(--ink);
-    text-align: left;
+  .game-tabs button {
+    display: flex;
+    min-height: 70px;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 15px 20px;
     background: transparent;
     border: 0;
-    border-bottom: 1px solid var(--line);
-    cursor: pointer;
-    transition: color 180ms ease, padding-inline 180ms ease, background-color 180ms ease;
+    transition: color 160ms ease, background-color 160ms ease;
   }
 
-  .game-option:hover {
-    padding-inline: 10px;
-    background: rgb(23 63 53 / 5%);
+  .game-tabs button + button {
+    border-left: 1px solid var(--line);
   }
 
-  .game-option:active {
+  .game-tabs button:hover {
+    background: rgb(24 62 50 / 7%);
+  }
+
+  .game-tabs button:active,
+  .action-row button:active,
+  .pass-action:active {
     transform: translateY(1px);
   }
 
-  .game-option:focus-visible {
-    outline: 2px solid var(--forest-light);
-    outline-offset: 4px;
+  .game-tabs button.is-active {
+    color: #fff9e9;
+    background: var(--forest);
   }
 
-  .game-option.is-selected {
-    color: var(--forest);
-  }
-
-  .choice-number {
-    align-self: start;
-    padding-top: 4px;
-    color: var(--ink-soft);
-    font-family: "SFMono-Regular", Consolas, monospace;
-    font-size: 0.67rem;
-  }
-
-  .choice-copy {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-  }
-
-  .choice-title {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    font-family: "Iowan Old Style", "Songti SC", Georgia, serif;
-    font-size: 1.55rem;
+  .game-tabs span {
+    font-family: "Songti SC", "STSong", serif;
+    font-size: 1.32rem;
     font-weight: 700;
   }
 
-  .choice-title span {
-    color: var(--ink-soft);
-    font-family: "Songti SC", "Noto Serif CJK SC", serif;
-    font-size: 0.92rem;
+  .game-tabs small {
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+  }
+
+  .control-heading {
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .control-heading h2 {
+    margin-top: 12px;
+    font-size: clamp(1.9rem, 3.2vw, 2.9rem);
     font-weight: 500;
+    letter-spacing: 0.04em;
   }
 
-  .choice-origin {
-    color: var(--ink-soft);
-    font-size: 0.75rem;
-  }
-
-  .selection-mark {
-    width: 11px;
-    height: 11px;
-    border: 1px solid var(--forest-light);
-    border-radius: 50%;
-    transition: background-color 180ms ease, box-shadow 180ms ease;
-  }
-
-  .is-selected .selection-mark {
-    background: var(--forest-light);
-    box-shadow: inset 0 0 0 2px var(--paper);
-  }
-
-  .selection-details {
-    margin-top: 30px;
-  }
-
-  .selection-details > p {
-    max-width: 53ch;
-    color: var(--ink-soft);
+  .control-heading > p:last-child {
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 0.84rem;
     line-height: 1.65;
   }
 
-  .selection-details dl {
+  .field-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 22px;
-    margin-top: 26px;
+    grid-template-columns: 1fr minmax(106px, 0.65fr);
+    align-items: center;
+    gap: 18px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
   }
 
-  .selection-details dl > div {
-    padding-top: 14px;
+  .field-row label {
+    font-size: 0.79rem;
+    font-weight: 700;
+  }
+
+  .field-row select {
+    width: 100%;
+    padding: 8px 28px 8px 10px;
+    color: var(--ink);
+    background: #fbf5e7;
+    border: 1px solid rgb(54 67 58 / 36%);
+    border-radius: var(--radius);
+  }
+
+  .action-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 20px;
+  }
+
+  .action-row button,
+  .pass-action {
+    min-height: 42px;
+    padding: 9px 12px;
+    border-radius: var(--radius);
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .primary-action {
+    color: #fff9ec;
+    background: var(--forest);
+    border: 1px solid var(--forest);
+  }
+
+  .secondary-action,
+  .pass-action {
+    color: var(--forest);
+    background: transparent;
+    border: 1px solid rgb(24 62 50 / 42%);
+  }
+
+  .pass-action {
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .status-block {
+    margin-top: 26px;
+    padding: 18px;
+    color: #f8f0de;
+    background: var(--forest);
+    border-radius: var(--radius);
+  }
+
+  .status-label {
+    color: rgb(248 240 222 / 60%);
+  }
+
+  .status-block > strong {
+    display: block;
+    margin-top: 7px;
+    font-family: "Songti SC", "STSong", serif;
+    font-size: 1.28rem;
+  }
+
+  .status-block > p:not(.status-label) {
+    margin-top: 8px;
+    color: rgb(248 240 222 / 75%);
+    font-size: 0.76rem;
+    line-height: 1.55;
+  }
+
+  .status-block .error-message {
+    padding-top: 8px;
+    color: #ffe0d9;
+    border-top: 1px solid rgb(255 255 255 / 16%);
+  }
+
+  .thinking-bar {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-top: 13px;
+    color: #fff7e7;
+    font-size: 0.72rem;
+  }
+
+  .thinking-bar span {
+    width: 42px;
+    height: 3px;
+    overflow: hidden;
+    background: rgb(255 255 255 / 17%);
+  }
+
+  .thinking-bar span::after {
+    display: block;
+    width: 45%;
+    height: 100%;
+    background: #e1bd76;
+    animation: thinking 900ms ease-in-out infinite alternate;
+    content: "";
+  }
+
+  @keyframes thinking {
+    to { transform: translateX(125%); }
+  }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 22px;
+  }
+
+  .metrics > div {
+    padding-top: 10px;
     border-top: 1px solid var(--line);
   }
 
-  .selection-details dd {
-    margin-top: 7px;
-    color: var(--ink);
-    font-size: 0.78rem;
+  .metrics dt {
+    color: var(--muted);
+    font-size: 0.66rem;
+  }
+
+  .metrics dd {
+    margin-top: 4px;
+    font-family: "Songti SC", "STSong", serif;
+    font-size: 1.22rem;
+    font-weight: 700;
+  }
+
+  .engine-report {
+    margin-top: 22px;
+    padding-left: 13px;
+    border-left: 3px solid var(--forest-bright);
+  }
+
+  .engine-report > span {
+    color: var(--muted);
+  }
+
+  .engine-report strong {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.82rem;
+  }
+
+  .engine-report p {
+    margin-top: 5px;
+    color: var(--muted);
+    font-size: 0.7rem;
     line-height: 1.5;
+    overflow-wrap: anywhere;
   }
 
-  .board-stage {
+  .engine-report.is-empty {
+    border-left-color: rgb(44 71 59 / 24%);
+  }
+
+  .board-title {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .board-title > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .board-title span {
+    color: rgb(247 240 223 / 58%);
+  }
+
+  .board-title strong {
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    font-weight: 600;
+    letter-spacing: 0.09em;
+  }
+
+  .board-title > p {
+    padding: 7px 10px;
+    color: #f8dfb1;
+    border: 1px solid rgb(248 223 177 / 30%);
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+  }
+
+  .board-scroll {
+    width: 100%;
+    margin-top: clamp(22px, 4vw, 42px);
+    overflow: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-color: #8f6336 rgb(255 255 255 / 10%);
+  }
+
+  .go-surface,
+  .xiangqi-surface {
     position: relative;
-    padding: clamp(20px, 3.2vw, 42px);
-    overflow: hidden;
-    color: #f9f3e3;
+    width: min(100%, 720px);
+    margin: 0 auto;
+    padding: clamp(10px, 1.6vw, 18px);
     background:
-      linear-gradient(145deg, rgb(255 255 255 / 5%), transparent 36%),
-      var(--forest);
+      linear-gradient(105deg, rgb(255 238 193 / 18%), transparent 45%),
+      var(--wood);
+    border: 7px solid #96632e;
     border-radius: var(--radius);
-    box-shadow: 0 34px 70px rgb(54 50 32 / 25%);
+    box-shadow:
+      inset 0 0 0 1px rgb(70 42 15 / 52%),
+      inset 0 0 26px rgb(81 48 16 / 18%),
+      0 16px 32px rgb(3 23 17 / 34%);
   }
 
-  .board-stage::before {
+  .go-surface {
+    aspect-ratio: 1;
+  }
+
+  .go-size-13 {
+    min-width: 450px;
+  }
+
+  .go-size-19 {
+    min-width: 540px;
+  }
+
+  .go-grid {
+    position: relative;
+    display: grid;
+    width: 100%;
+    height: 100%;
+    padding: 3.4%;
+    grid-template-columns: repeat(var(--go-size), minmax(0, 1fr));
+    grid-template-rows: repeat(var(--go-size), minmax(0, 1fr));
+  }
+
+  .go-grid::before {
     position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(90deg, transparent 0 53px, rgb(255 255 255 / 2%) 54px);
+    z-index: 0;
+    inset: 6.15%;
+    background-image:
+      linear-gradient(to right, rgb(57 37 18 / 72%) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(57 37 18 / 72%) 1px, transparent 1px);
+    background-position: 0 0;
+    background-size: var(--go-cell) var(--go-cell);
+    border-right: 1px solid rgb(57 37 18 / 72%);
+    border-bottom: 1px solid rgb(57 37 18 / 72%);
     content: "";
     pointer-events: none;
   }
 
-  .stage-caption {
+  .go-point,
+  .xiangqi-square {
     position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: start;
-    justify-content: space-between;
-    gap: 20px;
-  }
-
-  .stage-caption > div {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .stage-caption span {
-    color: rgb(246 237 213 / 62%);
-  }
-
-  .stage-caption strong {
-    font-family: "Iowan Old Style", "Songti SC", Georgia, serif;
-    font-size: clamp(1.7rem, 3vw, 2.5rem);
-    font-weight: 600;
-  }
-
-  .stage-caption .native-title {
-    color: rgb(246 237 213 / 80%);
-    font-family: "Songti SC", "Noto Serif CJK SC", serif;
-    font-size: 1.1rem;
-    letter-spacing: 0.18em;
-  }
-
-  .board-wrap {
-    position: relative;
-    z-index: 1;
+    z-index: 2;
     display: grid;
-    width: min(100%, 590px);
-    margin: clamp(28px, 5vw, 58px) auto 0;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
     place-items: center;
+    background: transparent;
+    border: 0;
   }
 
-  .board {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 1;
-    overflow: hidden;
-    background-color: var(--wood);
-    border: clamp(12px, 2vw, 22px) solid #a36f36;
-    border-radius: var(--radius);
-    box-shadow:
-      inset 0 0 0 2px rgb(68 42 16 / 42%),
-      inset 0 0 32px rgb(89 54 20 / 20%),
-      0 18px 34px rgb(1 23 17 / 34%);
-    animation: board-enter 360ms ease-out both;
-  }
-
-  .go-board {
-    background-image:
-      repeating-linear-gradient(to right, transparent 0 calc(12.5% - 1px), rgb(57 39 21 / 68%) calc(12.5% - 1px) 12.5%),
-      repeating-linear-gradient(to bottom, transparent 0 calc(12.5% - 1px), rgb(57 39 21 / 68%) calc(12.5% - 1px) 12.5%),
-      linear-gradient(100deg, rgb(255 229 170 / 20%), rgb(96 55 20 / 8%));
-    background-position: center;
-  }
-
-  .go-stone {
+  .go-point:not(:disabled):hover::after {
     position: absolute;
-    width: 9.7%;
+    width: 48%;
     aspect-ratio: 1;
+    background: rgb(20 54 44 / 25%);
+    border: 1px solid rgb(20 54 44 / 38%);
     border-radius: 50%;
-    transform: translate(-50%, -50%);
-  }
-
-  .go-stone-black {
-    background: radial-gradient(circle at 34% 28%, #586158, #151c18 44%, #050806 78%);
-    box-shadow: 2px 5px 7px rgb(65 40 18 / 42%);
-  }
-
-  .go-stone-white {
-    background: radial-gradient(circle at 36% 28%, #fffef7, #d8d2c3 62%, #9f9b91);
-    box-shadow: 2px 5px 7px rgb(65 40 18 / 34%);
-  }
-
-  .stone-one { left: 25%; top: 25%; }
-  .stone-two { left: 62.5%; top: 37.5%; }
-  .stone-three { left: 50%; top: 62.5%; }
-  .stone-four { left: 37.5%; top: 75%; }
-  .stone-five { left: 75%; top: 75%; }
-
-  .xiangqi-board {
-    aspect-ratio: 9 / 10;
-    background-image:
-      repeating-linear-gradient(to right, transparent 0 calc(12.5% - 1px), rgb(57 39 21 / 68%) calc(12.5% - 1px) 12.5%),
-      repeating-linear-gradient(to bottom, transparent 0 calc(11.111% - 1px), rgb(57 39 21 / 68%) calc(11.111% - 1px) 11.111%),
-      linear-gradient(100deg, rgb(255 229 170 / 20%), rgb(96 55 20 / 8%));
-  }
-
-  .xiangqi-board::before {
-    position: absolute;
-    top: calc(50% - 5.5%);
-    right: 0;
-    bottom: calc(50% - 5.5%);
-    left: 0;
-    background: var(--wood);
-    border-block: 1px solid rgb(57 39 21 / 68%);
     content: "";
   }
 
-  .river-label {
+  .go-point:focus-visible,
+  .xiangqi-square:focus-visible {
+    z-index: 5;
+    outline: 3px solid #fff4d4;
+    outline-offset: -2px;
+    box-shadow: 0 0 0 5px #a4382d;
+  }
+
+  .star-point {
+    width: clamp(3px, 16%, 8px);
+    aspect-ratio: 1;
+    background: #4b2f16;
+    border-radius: 50%;
+  }
+
+  .go-stone {
+    position: relative;
+    z-index: 2;
+    width: 88%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    box-shadow: 2px 4px 6px rgb(64 37 14 / 40%);
+  }
+
+  .go-stone.black {
+    background: radial-gradient(circle at 34% 27%, #5d655f, #18201b 44%, #050806 78%);
+  }
+
+  .go-stone.white {
+    background: radial-gradient(circle at 34% 27%, #fffef8, #d8d2c3 62%, #99978f);
+  }
+
+  .last-marker {
     position: absolute;
-    top: 50%;
-    left: 50%;
+    z-index: 3;
+    width: 24%;
+    aspect-ratio: 1;
+    border: 2px solid #c64a3b;
+    border-radius: 50%;
+  }
+
+  .xiangqi-surface {
+    min-width: 430px;
+    aspect-ratio: 9 / 10;
+  }
+
+  .xiangqi-surface::before {
+    position: absolute;
+    z-index: 0;
+    top: 6.5%;
+    right: 7.1%;
+    bottom: 6.5%;
+    left: 7.1%;
+    background-image:
+      linear-gradient(to right, rgb(57 37 18 / 70%) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(57 37 18 / 70%) 1px, transparent 1px);
+    background-size: 12.5% 11.111%;
+    border-right: 1px solid rgb(57 37 18 / 70%);
+    border-bottom: 1px solid rgb(57 37 18 / 70%);
+    content: "";
+  }
+
+  .xiangqi-grid {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    width: 100%;
+    height: 100%;
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    grid-template-rows: repeat(10, minmax(0, 1fr));
+  }
+
+  .river {
+    position: absolute;
     z-index: 1;
-    width: 78%;
-    color: rgb(67 41 17 / 78%);
-    font-family: "Songti SC", "Noto Serif CJK SC", serif;
-    font-size: clamp(0.68rem, 2vw, 1.25rem);
-    letter-spacing: 0.12em;
-    text-align: center;
-    transform: translate(-50%, -50%);
+    top: 47.2%;
+    right: 7.1%;
+    left: 7.1%;
+    display: flex;
+    height: 5.7%;
+    align-items: center;
+    justify-content: space-around;
+    color: rgb(72 44 18 / 78%);
+    background: var(--wood);
+    border-block: 1px solid rgb(57 37 18 / 70%);
+    font-family: "STKaiti", "KaiTi", serif;
+    font-size: clamp(0.76rem, 2vw, 1.35rem);
+    letter-spacing: 0.3em;
+    pointer-events: none;
+  }
+
+  .xiangqi-square:not(:disabled):hover::after,
+  .xiangqi-square.is-target::after {
+    position: absolute;
+    width: 28%;
+    aspect-ratio: 1;
+    background: rgb(31 86 67 / 42%);
+    border-radius: 50%;
+    content: "";
+  }
+
+  .xiangqi-square.is-last::before {
+    position: absolute;
+    width: 70%;
+    aspect-ratio: 1;
+    border: 2px solid rgb(164 56 45 / 56%);
+    border-radius: 50%;
+    content: "";
   }
 
   .xiangqi-piece {
-    position: absolute;
+    position: relative;
     z-index: 2;
     display: grid;
-    width: 10.5%;
+    width: 80%;
     aspect-ratio: 1;
     place-items: center;
-    background: #e8cf98;
+    background: #e8ce94;
     border: 2px solid currentcolor;
     border-radius: 50%;
-    font-family: "Songti SC", "Noto Serif CJK SC", serif;
-    font-size: clamp(0.72rem, 2vw, 1.25rem);
-    font-weight: 700;
+    font-family: "STKaiti", "KaiTi", "Songti SC", serif;
+    font-size: clamp(0.8rem, 2.2vw, 1.55rem);
+    font-weight: 800;
     box-shadow:
-      inset 0 0 0 2px #e8cf98,
+      inset 0 0 0 2px #e8ce94,
       inset 0 0 0 3px currentcolor,
-      2px 5px 7px rgb(65 40 18 / 38%);
-    transform: translate(-50%, -50%);
+      2px 4px 6px rgb(64 37 14 / 40%);
   }
 
-  .piece-red { color: #9a3027; }
-  .piece-black { color: #24362e; }
-  .piece-general { left: 50%; top: 83.3%; }
-  .piece-cannon { left: 25%; top: 72.2%; }
-  .piece-general-black { left: 50%; top: 16.7%; }
-  .piece-horse { left: 75%; top: 27.8%; }
-
-  .stage-note {
-    position: relative;
-    z-index: 1;
-    max-width: 62ch;
-    margin-top: clamp(24px, 4vw, 42px);
-    color: rgb(246 237 213 / 66%);
-    font-size: 0.72rem;
-    line-height: 1.6;
+  .xiangqi-piece.red {
+    color: #a23329;
   }
 
-  @keyframes board-enter {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  .xiangqi-piece.black {
+    color: #24392f;
+  }
+
+  .xiangqi-square.is-selected .xiangqi-piece {
+    box-shadow:
+      inset 0 0 0 2px #e8ce94,
+      inset 0 0 0 3px currentcolor,
+      0 0 0 4px #fff0c7,
+      0 0 0 7px #a2382d;
+  }
+
+  .score-sheet {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    margin-top: 20px;
+    color: var(--ink);
+    background: rgb(255 255 255 / 18%);
+  }
+
+  .score-sheet > div {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 3px 18px;
+    padding: 14px;
+    background: #efe2c5;
+  }
+
+  .score-sheet strong {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+    align-self: center;
+    font-family: "Songti SC", serif;
+    font-size: 1.65rem;
+  }
+
+  .score-sheet small {
+    color: var(--muted);
+    font-size: 0.65rem;
+  }
+
+  .rules-note {
+    max-width: 72ch;
+    margin-top: 22px;
+    color: rgb(247 240 223 / 65%);
+    font-size: 0.69rem;
+    line-height: 1.65;
   }
 }
 
-@layer utilities {
-  @media (max-width: 900px) {
-    .intro {
+@layer responsive {
+  @media (max-width: 1020px) {
+    .play-room {
       grid-template-columns: 1fr;
     }
 
-    .intro-copy {
-      margin-top: 26px;
+    .control-rail {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0 28px;
     }
 
-    .game-room {
-      grid-template-columns: 1fr;
+    .control-heading,
+    .status-block,
+    .metrics,
+    .engine-report {
+      grid-column: auto;
     }
 
-    .board-stage {
-      width: min(100%, 700px);
+    .control-heading {
+      grid-row: span 2;
+    }
+
+    .action-row,
+    .pass-action {
+      align-self: end;
+    }
+
+    .board-panel {
+      max-width: 850px;
+      width: 100%;
       margin: 0 auto;
     }
   }
 
-  @media (max-width: 560px) {
+  @media (max-width: 680px) {
     .site-header {
-      min-height: 68px;
+      min-height: 66px;
     }
 
-    .header-note {
+    .site-header > p {
       display: none;
     }
 
     .main-content {
-      padding-top: 36px;
+      padding-top: 30px;
     }
 
-    .intro h1 {
-      font-size: clamp(2.65rem, 15vw, 4.2rem);
-    }
-
-    .selection-details dl {
+    .game-heading {
       grid-template-columns: 1fr;
     }
 
-    .board-stage {
-      padding: 18px;
+    .game-heading > p {
+      padding: 0;
+    }
+
+    .game-tabs {
+      max-width: none;
+    }
+
+    .game-tabs button {
+      min-height: 62px;
+      padding: 12px 14px;
+    }
+
+    .control-rail {
+      display: block;
+    }
+
+    .field-row:first-of-type {
+      margin-top: 10px;
+    }
+
+    .board-panel {
+      padding: 16px;
+    }
+
+    .go-size-9 {
+      min-width: 380px;
+    }
+
+    .board-scroll {
+      padding-bottom: 7px;
     }
 
     .site-footer {
       flex-direction: column;
+      gap: 8px;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    html {
-      scroll-behavior: auto;
-    }
-
     *,
     *::before,
     *::after {
