@@ -1,4 +1,12 @@
 .wrangler/
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+worker-configuration.d.ts
+.env
+.env.*
+!.env.example
 __pycache__/
 *.py[cod]
 experiments/*/evidence.json
