@@ -1,8 +1,6 @@
 import type { GoColor, GoMove, GoState } from "../games/go";
 import type { XiangqiMove, XiangqiSide, XiangqiState } from "../games/xiangqi";
 
-export const ROOM_SOCKET_PROTOCOL = "game-room-v1";
-export const ROOM_SEAT_PROTOCOL_PREFIX = "seat.";
 
 export type OnlineGameId = "go" | "xiangqi";
 export type OnlineSide = GoColor | XiangqiSide;

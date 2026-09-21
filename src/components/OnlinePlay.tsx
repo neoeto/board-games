@@ -4,8 +4,6 @@ import { XiangqiBoard } from "./XiangqiBoard";
 import type { GoColor, GoMove, GoState } from "../games/go";
 import type { XiangqiMove, XiangqiSide, XiangqiState } from "../games/xiangqi";
 import {
-  ROOM_SEAT_PROTOCOL_PREFIX,
-  ROOM_SOCKET_PROTOCOL,
   type CreateRoomResponse,
   type JoinRoomResponse,
   type OnlineGameId,
@@ -122,9 +120,10 @@ function errorText(value: unknown, fallback: string): string {
   return typeof message === "string" ? message : fallback;
 }
 
-function websocketUrl(roomId: string): string {
+function websocketUrl(roomId: string, token: string): string {
   const url = new URL(`/api/rooms/${roomId}`, window.location.href);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  url.searchParams.set("seat", token);
   return url.href;
 }
 
@@ -238,10 +237,7 @@ export function OnlinePlay({ game }: OnlinePlayProps) {
     const connect = () => {
       if (disposed) return;
       setConnection(attempt === 0 ? "connecting" : "reconnecting");
-      socket = new WebSocket(websocketUrl(roomId), [
-        ROOM_SOCKET_PROTOCOL,
-        `${ROOM_SEAT_PROTOCOL_PREFIX}${seat.token}`,
-      ]);
+      socket = new WebSocket(websocketUrl(roomId, seat.token));
       socketRef.current = socket;
       socket.onopen = () => {
         attempt = 0;

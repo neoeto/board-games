@@ -12,8 +12,6 @@ import {
   type XiangqiState,
 } from "../src/games/xiangqi";
 import {
-  ROOM_SEAT_PROTOCOL_PREFIX,
-  ROOM_SOCKET_PROTOCOL,
   type CreateRoomResponse,
   type JoinRoomResponse,
   type OnlineGameState,
@@ -104,20 +102,9 @@ function attachmentFor(socket: WebSocket): SocketAttachment | null {
   return typeof token === "string" ? { token } : null;
 }
 
-function parseProtocols(request: Request): readonly string[] {
-  return (request.headers.get("Sec-WebSocket-Protocol") ?? "")
-    .split(",")
-    .map((protocol) => protocol.trim())
-    .filter(Boolean);
-}
-
 function parseSeatToken(request: Request): string | null {
-  const protocols = parseProtocols(request);
-  if (!protocols.includes(ROOM_SOCKET_PROTOCOL)) return null;
-  const protocol = protocols.find((entry) => entry.startsWith(ROOM_SEAT_PROTOCOL_PREFIX));
-  if (!protocol) return null;
-  const token = protocol.slice(ROOM_SEAT_PROTOCOL_PREFIX.length);
-  return /^[a-f0-9]{32}$/.test(token) ? token : null;
+  const token = new URL(request.url).searchParams.get("seat");
+  return token && /^[a-f0-9]{32}$/.test(token) ? token : null;
 }
 
 function isMove(value: unknown): value is GoMove | XiangqiMove {
@@ -365,11 +352,7 @@ export class GameRoom extends DurableObject<Env> {
       phase: activeRoom.phase,
       connectedSides: this.connectedSides(activeRoom),
     }));
-    return new Response(null, {
-      status: 101,
-      headers: { "Sec-WebSocket-Protocol": ROOM_SOCKET_PROTOCOL },
-      webSocket: client,
-    });
+    return new Response(null, { status: 101, webSocket: client });
   }
 
   private async move(
