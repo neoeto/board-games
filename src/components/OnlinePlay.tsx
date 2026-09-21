@@ -233,13 +233,18 @@ export function OnlinePlay({ game }: OnlinePlayProps) {
     let reconnectTimer: number | undefined;
     let attempt = 0;
     let socket: WebSocket | null = null;
+    let opened = false;
+
 
     const connect = () => {
       if (disposed) return;
+      opened = false;
       setConnection(attempt === 0 ? "connecting" : "reconnecting");
       socket = new WebSocket(websocketUrl(roomId, seat.token));
       socketRef.current = socket;
       socket.onopen = () => {
+        opened = true;
+
         attempt = 0;
         console.info("[online-room]", { event: "socket_open", roomId, side: seat.side });
         socket?.send(JSON.stringify({ type: "sync" }));
@@ -280,6 +285,9 @@ export function OnlinePlay({ game }: OnlinePlayProps) {
           reason: event.reason,
           wasClean: event.wasClean,
         });
+        if (!opened) {
+          setError("实时 WebSocket 未能建立。当前网络代理必须允许 wss://board-games.marching-tech.com:443 的 CONNECT/Upgrade；请将该域名加入代理绕过或白名单后重试。");
+        }
         attempt += 1;
         if (attempt > MAX_RECONNECT_ATTEMPTS) {
           setConnection("closed");
