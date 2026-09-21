@@ -16,6 +16,8 @@ export interface LocalSearchResult {
 interface SearchLimits {
   readonly maxDepth: number;
   readonly maxNodes: number;
+  readonly maxCaptureDepth: number;
+  readonly randomMargin: number;
 }
 
 interface SearchContext {
@@ -26,6 +28,11 @@ interface SearchContext {
 interface ScoredMove {
   readonly move: XiangqiMove;
   readonly orderingScore: number;
+}
+
+interface RootCandidate {
+  readonly move: XiangqiMove;
+  readonly score: number;
 }
 
 const PIECE_VALUE: Readonly<Record<XiangqiPiece["type"], number>> = {
@@ -39,9 +46,9 @@ const PIECE_VALUE: Readonly<Record<XiangqiPiece["type"], number>> = {
 };
 
 const SEARCH_LIMITS: Readonly<Record<Difficulty, SearchLimits>> = {
-  easy: { maxDepth: 2, maxNodes: 350 },
-  normal: { maxDepth: 4, maxNodes: 8_000 },
-  hard: { maxDepth: 6, maxNodes: 50_000 },
+  easy: { maxDepth: 3, maxNodes: 1_200, maxCaptureDepth: 2, randomMargin: 48 },
+  normal: { maxDepth: 5, maxNodes: 12_000, maxCaptureDepth: 3, randomMargin: 24 },
+  hard: { maxDepth: 7, maxNodes: 60_000, maxCaptureDepth: 4, randomMargin: 8 },
 };
 
 const MATE_SCORE = 1_000_000;
@@ -56,6 +63,24 @@ function compareMoves(left: ScoredMove, right: ScoredMove): number {
     left.move.to.y - right.move.to.y ||
     left.move.to.x - right.move.to.x
   );
+}
+
+function chooseEquivalentRootMove(candidates: readonly RootCandidate[], randomMargin: number): XiangqiMove {
+  let bestScore = -Infinity;
+  for (const candidate of candidates) bestScore = Math.max(bestScore, candidate.score);
+
+  const equivalent = candidates.filter((candidate) => candidate.score >= bestScore - randomMargin);
+  if (equivalent.length === 1) return equivalent[0].move;
+
+  let index: number;
+  if (typeof globalThis.crypto?.getRandomValues === "function") {
+    const randomValue = new Uint32Array(1);
+    globalThis.crypto.getRandomValues(randomValue);
+    index = randomValue[0] % equivalent.length;
+  } else {
+    index = Math.floor(Math.random() * equivalent.length);
+  }
+  return equivalent[index].move;
 }
 
 function orderedMoves(state: XiangqiState): XiangqiMove[] {
@@ -108,6 +133,48 @@ function evaluate(state: XiangqiState): number {
   return state.turn === "red" ? redPerspective : -redPerspective;
 }
 
+function quiescence(
+  state: XiangqiState,
+  alpha: number,
+  beta: number,
+  context: SearchContext,
+  ply: number,
+  remainingCaptureDepth: number,
+): number {
+  if (state.status !== "playing") {
+    if (state.winner === null) return 0;
+    return state.winner === state.turn ? MATE_SCORE - ply : -MATE_SCORE + ply;
+  }
+
+  const standPat = evaluate(state);
+  if (remainingCaptureDepth === 0 || context.nodes >= context.maxNodes) return standPat;
+  if (standPat >= beta) return standPat;
+
+  let best = standPat;
+  let lowerBound = Math.max(alpha, standPat);
+  for (const move of orderedMoves(state)) {
+    if (context.nodes >= context.maxNodes) break;
+    if (!state.board[move.to.y]?.[move.to.x]) continue;
+
+    const result = playXiangqiMove(state, move);
+    if (!result.ok) continue;
+    context.nodes += 1;
+
+    const score = -quiescence(
+      result.state,
+      -beta,
+      -lowerBound,
+      context,
+      ply + 1,
+      remainingCaptureDepth - 1,
+    );
+    if (score > best) best = score;
+    if (score > lowerBound) lowerBound = score;
+    if (lowerBound >= beta) break;
+  }
+  return best;
+}
+
 function negamax(
   state: XiangqiState,
   depth: number,
@@ -115,14 +182,17 @@ function negamax(
   beta: number,
   context: SearchContext,
   ply: number,
+  maxCaptureDepth: number,
 ): number {
-  context.nodes += 1;
   if (state.status !== "playing") {
     if (state.winner === null) return 0;
     return state.winner === state.turn ? MATE_SCORE - ply : -MATE_SCORE + ply;
   }
-  if (depth === 0 || context.nodes >= context.maxNodes) return evaluate(state);
+  if (depth === 0 || context.nodes >= context.maxNodes) {
+    return quiescence(state, alpha, beta, context, ply, maxCaptureDepth);
+  }
 
+  context.nodes += 1;
   const moves = orderedMoves(state);
   if (moves.length === 0) return evaluate(state);
 
@@ -133,7 +203,15 @@ function negamax(
     const result = playXiangqiMove(state, move);
     if (!result.ok) continue;
 
-    const score = -negamax(result.state, depth - 1, -beta, -lowerBound, context, ply + 1);
+    const score = -negamax(
+      result.state,
+      depth - 1,
+      -beta,
+      -lowerBound,
+      context,
+      ply + 1,
+      maxCaptureDepth,
+    );
     if (score > best) best = score;
     if (score > lowerBound) lowerBound = score;
     if (lowerBound >= beta) break;
@@ -151,7 +229,7 @@ export function searchXiangqiLocally(state: XiangqiState, difficulty: Difficulty
   let completedDepth = 0;
 
   for (let depth = 1; depth <= limits.maxDepth; depth += 1) {
-    let iterationBest = bestMove;
+    const candidates: RootCandidate[] = [];
     let iterationScore = -Infinity;
     let completed = true;
 
@@ -162,15 +240,21 @@ export function searchXiangqiLocally(state: XiangqiState, difficulty: Difficulty
       }
       const result = playXiangqiMove(state, move);
       if (!result.ok) continue;
-      const score = -negamax(result.state, depth - 1, -Infinity, Infinity, context, 1);
-      if (score > iterationScore) {
-        iterationScore = score;
-        iterationBest = move;
-      }
+      const score = -negamax(
+        result.state,
+        depth - 1,
+        -Infinity,
+        Infinity,
+        context,
+        1,
+        limits.maxCaptureDepth,
+      );
+      candidates.push({ move, score });
+      iterationScore = Math.max(iterationScore, score);
     }
 
-    if (!completed) break;
-    bestMove = iterationBest;
+    if (!completed || candidates.length === 0) break;
+    bestMove = chooseEquivalentRootMove(candidates, limits.randomMargin);
     completedDepth = depth;
     if (Math.abs(iterationScore) >= MATE_SCORE - 100 || context.nodes >= context.maxNodes) break;
   }
