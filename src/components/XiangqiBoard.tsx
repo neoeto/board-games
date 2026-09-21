@@ -4,6 +4,7 @@ import {
   type XiangqiMove,
   type XiangqiPiece,
   type XiangqiPosition,
+  type XiangqiSide,
   type XiangqiState,
 } from "../games/xiangqi";
 
@@ -12,6 +13,7 @@ interface XiangqiBoardProps {
   readonly disabled: boolean;
   readonly onMove: (move: XiangqiMove) => boolean;
   readonly onMessage: (message: string) => void;
+  readonly playerSide?: XiangqiSide;
 }
 
 const RED_LABELS: Record<XiangqiPiece["type"], string> = {
@@ -38,7 +40,7 @@ function samePosition(left: XiangqiPosition | null, right: XiangqiPosition): boo
   return left !== null && left.x === right.x && left.y === right.y;
 }
 
-function focusNeighbor(event: KeyboardEvent<HTMLButtonElement>, x: number, y: number): void {
+function focusNeighbor(event: KeyboardEvent<HTMLButtonElement>, x: number, y: number, flipped: boolean): void {
   const movement: Record<string, readonly [number, number]> = {
     ArrowLeft: [-1, 0],
     ArrowRight: [1, 0],
@@ -48,15 +50,18 @@ function focusNeighbor(event: KeyboardEvent<HTMLButtonElement>, x: number, y: nu
   const delta = movement[event.key];
   if (!delta) return;
   event.preventDefault();
-  const nextX = Math.max(0, Math.min(8, x + delta[0]));
-  const nextY = Math.max(0, Math.min(9, y + delta[1]));
+  const direction = flipped ? -1 : 1;
+  const nextX = Math.max(0, Math.min(8, x + delta[0] * direction));
+  const nextY = Math.max(0, Math.min(9, y + delta[1] * direction));
   event.currentTarget.parentElement
     ?.querySelector<HTMLButtonElement>(`[data-square="${nextX}-${nextY}"]`)
     ?.focus();
 }
 
-export function XiangqiBoard({ state, disabled, onMove, onMessage }: XiangqiBoardProps) {
+export function XiangqiBoard({ state, disabled, onMove, onMessage, playerSide = "red" }: XiangqiBoardProps) {
   const [selected, setSelected] = useState<XiangqiPosition | null>(null);
+  const flipped = playerSide === "black";
+  const playerName = playerSide === "red" ? "红方" : "黑方";
   const targets = useMemo(() => {
     if (!selected) return new Set<string>();
     return new Set(
@@ -68,23 +73,24 @@ export function XiangqiBoard({ state, disabled, onMove, onMessage }: XiangqiBoar
 
   function handleSquare(position: XiangqiPosition): void {
     const piece = state.board[position.y][position.x];
+    const pieceName = piece ? (piece.side === "red" ? RED_LABELS[piece.type] : BLACK_LABELS[piece.type]) : null;
     if (!selected) {
       if (!piece) {
-        onMessage("请先选择一枚红方棋子。");
+        onMessage(`请先选择一枚${playerName}棋子。`);
         return;
       }
-      if (piece.side !== "red") {
-        onMessage("你执红方，请选择红方棋子。");
+      if (piece.side !== playerSide) {
+        onMessage(`你执${playerName}，请选择${playerName}棋子。`);
         return;
       }
       setSelected(position);
-      onMessage(`已选择${RED_LABELS[piece.type]}，请选择落点。`);
+      onMessage(`已选择${pieceName}，请选择落点。`);
       return;
     }
 
-    if (piece?.side === "red") {
+    if (piece?.side === playerSide) {
       setSelected(position);
-      onMessage(`已改选${RED_LABELS[piece.type]}，请选择落点。`);
+      onMessage(`已改选${pieceName}，请选择落点。`);
       return;
     }
 
@@ -97,7 +103,7 @@ export function XiangqiBoard({ state, disabled, onMove, onMessage }: XiangqiBoar
       <div className="xiangqi-surface">
         <div className="palace-lines" aria-hidden="true" />
         <div className="river" aria-hidden="true"><span>楚河</span><span>漢界</span></div>
-        <div className="xiangqi-grid" role="group" aria-label="中国象棋棋盘，红方在下">
+        <div className="xiangqi-grid" role="group" aria-label={`中国象棋棋盘，${playerName}在下`}>
           {state.board.flatMap((row, y) =>
             row.map((piece, x) => {
               const position = { x, y };
@@ -114,20 +120,22 @@ export function XiangqiBoard({ state, disabled, onMove, onMessage }: XiangqiBoar
               const label = piece
                 ? `${piece.side === "red" ? "红方" : "黑方"}${piece.side === "red" ? RED_LABELS[piece.type] : BLACK_LABELS[piece.type]}`
                 : "空位";
+              const displayX = flipped ? 8 - x : x;
+              const displayY = flipped ? 9 - y : y;
               return (
                 <button
-                  aria-label={`第 ${x + 1} 路，第 ${10 - y} 线，${label}${isSelected ? "，已选择" : ""}${isTarget ? "，可走" : ""}`}
+                  aria-label={`第 ${displayX + 1} 路，第 ${10 - displayY} 线，${label}${isSelected ? "，已选择" : ""}${isTarget ? "，可走" : ""}`}
                   aria-pressed={isSelected}
                   className={`xiangqi-square${isSelected ? " is-selected" : ""}${isTarget ? " is-target" : ""}${isLastFrom || isLastTo ? " is-last" : ""}`}
                   data-square={`${x}-${y}`}
                   style={{
-                    left: `${(x / 8) * 100}%`,
-                    top: `${(y / 9) * 100}%`,
+                    left: `${(displayX / 8) * 100}%`,
+                    top: `${(displayY / 9) * 100}%`,
                   }}
                   disabled={disabled}
                   key={`${x}-${y}`}
                   onClick={() => handleSquare(position)}
-                  onKeyDown={(event) => focusNeighbor(event, x, y)}
+                  onKeyDown={(event) => focusNeighbor(event, x, y, flipped)}
                   type="button"
                 >
                   {piece ? (

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GoBoard } from "./components/GoBoard";
 import { XiangqiBoard } from "./components/XiangqiBoard";
+import { OnlinePlay } from "./components/OnlinePlay";
 import { chooseGoMove } from "./engines/go/browserGoAi";
 import { chooseXiangqiMove } from "./engines/xiangqi/browserXiangqiAi";
 import {
@@ -19,6 +20,8 @@ import {
 } from "./games/xiangqi";
 
 type GameId = "go" | "xiangqi";
+
+type PlayMode = "computer" | "online";
 type EngineName = "katago" | "pikafish" | "local";
 
 interface EngineReport {
@@ -40,6 +43,9 @@ function engineLabel(engine: EngineName): string {
 }
 
 function App() {
+  const [mode, setMode] = useState<PlayMode>(() =>
+    new URLSearchParams(window.location.search).has("room") ? "online" : "computer",
+  );
   const [game, setGame] = useState<GameId>("go");
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
   const [goSize, setGoSize] = useState<9 | 13 | 19>(9);
@@ -196,6 +202,13 @@ function App() {
     setMessage(nextGame === "go" ? "你执黑，请在棋盘上落子。" : "你执红，请先选择棋子，再选择落点。");
   }
 
+
+  function chooseMode(nextMode: PlayMode): void {
+    if (nextMode === mode) return;
+    cancelAi();
+    setError(null);
+    setMode(nextMode);
+  }
   function restartGame(): void {
     cancelAi();
     setError(null);
@@ -268,7 +281,7 @@ function App() {
           <span className="brand-mark" aria-hidden="true">弈</span>
           <span><strong>弈室</strong><small>JUST GO</small></span>
         </div>
-        <p>规则与电脑均在本机浏览器运行</p>
+        <p>{mode === "online" ? "实时房间由服务器裁决，同一浏览器资料可自动重连。" : "规则与电脑均在本机浏览器运行。"}</p>
       </header>
 
       <main className="main-content">
@@ -277,7 +290,7 @@ function App() {
             <p className="kicker">两种古典棋局，一张安静棋桌</p>
             <h1 id="page-title">围棋与中国象棋</h1>
           </div>
-          <p>无需账户，无需联网对局。你执先手，电脑在浏览器内应战。</p>
+          <p>{mode === "online" ? "创建私密房间，与受邀对手在同一张棋桌上实时对弈。" : "无需账户，无需联网对局。你执先手，电脑在浏览器内应战。"}</p>
         </section>
 
         <nav className="game-tabs" aria-label="选择棋类">
@@ -288,6 +301,13 @@ function App() {
             <span>象棋</span><small>XIANGQI</small>
           </button>
         </nav>
+
+        <nav className="mode-tabs" aria-label="选择对局模式">
+          <button aria-pressed={mode === "computer"} className={mode === "computer" ? "is-active" : ""} onClick={() => chooseMode("computer")} type="button">人机对弈</button>
+          <button aria-pressed={mode === "online"} className={mode === "online" ? "is-active" : ""} onClick={() => chooseMode("online")} type="button">在线对弈</button>
+        </nav>
+
+        {mode === "online" ? <OnlinePlay game={game} /> : (
 
         <section className="play-room" aria-label={game === "go" ? "围棋对局" : "中国象棋对局"}>
           <aside className="control-rail">
@@ -391,11 +411,11 @@ function App() {
             )}
           </div>
         </section>
+        )}
       </main>
 
       <footer className="site-footer">
-        <p>所有棋规、计分与电脑着法均在你的设备上执行。</p>
-        <p>围棋 · 中国象棋 · 浏览器本地对弈</p>
+        <p>{mode === "online" ? "围棋 · 中国象棋 · 私密实时对弈" : "围棋 · 中国象棋 · 浏览器本地对弈"}</p>
       </footer>
     </div>
   );

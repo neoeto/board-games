@@ -828,6 +828,171 @@
     font-size: 0.69rem;
     line-height: 1.65;
   }
+
+  .mode-tabs {
+    display: flex;
+    width: fit-content;
+    margin-top: 14px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+
+  .mode-tabs button {
+    min-height: 36px;
+    padding: 7px 14px;
+    color: var(--muted);
+    background: transparent;
+    border: 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .mode-tabs button + button {
+    border-left: 1px solid var(--line);
+  }
+
+  .mode-tabs button.is-active {
+    color: #fff9e9;
+    background: var(--forest);
+  }
+
+  .online-lobby {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.64fr);
+    gap: clamp(28px, 7vw, 110px);
+    max-width: 980px;
+    margin: clamp(28px, 4vw, 48px) auto 0;
+    padding: clamp(26px, 4vw, 52px);
+    background: #eadbbd;
+    border: 1px solid var(--line);
+    box-shadow: 0 24px 50px rgb(62 40 18 / 12%);
+  }
+
+  .online-lobby-copy h2 {
+    margin-top: 12px;
+    font-family: "Songti SC", "STSong", serif;
+    font-size: clamp(2rem, 4.3vw, 3.4rem);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+
+  .online-lobby-copy > p:last-child,
+  .online-form > p {
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 0.84rem;
+    line-height: 1.7;
+  }
+
+  .online-form {
+    align-self: start;
+    padding: 4px 0;
+  }
+
+  .online-form .field-row strong {
+    justify-self: end;
+    font-family: "Songti SC", "STSong", serif;
+  }
+
+  .online-create,
+  .online-secondary,
+  .online-leave,
+  .online-invite button {
+    min-height: 42px;
+    padding: 9px 12px;
+    border-radius: var(--radius);
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+
+  .online-create {
+    width: 100%;
+    margin-top: 20px;
+  }
+
+  .online-secondary {
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .online-error {
+    margin-top: 14px;
+    color: #8e2f26;
+    font-size: 0.76rem;
+    line-height: 1.55;
+  }
+
+  .online-invite {
+    display: grid;
+    gap: 7px;
+    margin-top: 22px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .online-invite label,
+  .online-seats dt {
+    color: var(--muted);
+    font-size: 0.67rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+
+  .online-invite input {
+    min-width: 0;
+    padding: 9px;
+    color: var(--ink);
+    background: #fbf5e7;
+    border: 1px solid rgb(54 67 58 / 36%);
+    border-radius: var(--radius);
+    font: inherit;
+    font-size: 0.69rem;
+  }
+
+  .online-invite button {
+    width: 100%;
+    color: var(--forest);
+    background: transparent;
+    border: 1px solid rgb(24 62 50 / 42%);
+  }
+
+  .online-seats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .online-seats > div {
+    padding: 10px 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .online-seats dd {
+    margin-top: 5px;
+    color: var(--forest);
+    font-size: 0.76rem;
+    font-weight: 700;
+  }
+
+  .online-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .online-actions:has(button + button) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .online-leave {
+    width: 100%;
+    margin-top: 12px;
+    color: var(--muted);
+    background: transparent;
+    border: 0;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
 }
 
 @layer responsive {
@@ -863,6 +1028,10 @@
       width: 100%;
       margin: 0 auto;
     }
+
+    .online-lobby {
+      grid-template-columns: 1fr;
+    }
   }
 
   @media (max-width: 680px) {
@@ -893,6 +1062,18 @@
     .game-tabs button {
       min-height: 62px;
       padding: 12px 14px;
+    }
+
+    .mode-tabs {
+      width: 100%;
+    }
+
+    .mode-tabs button {
+      flex: 1;
+    }
+
+    .online-lobby {
+      padding: 24px 18px;
     }
 
     .control-rail {
