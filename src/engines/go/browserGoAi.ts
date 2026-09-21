@@ -6,6 +6,7 @@ import {
   type GoState,
 } from "../../games/go";
 import { getCachedAsset, putCachedAsset } from "../shared/assetCache";
+import { searchLocalGo } from "./localSearch";
 
 export type GoAiResult = {
   readonly move: GoMove | "pass";
@@ -106,6 +107,16 @@ function deterministicEmergencyMove(state: GoState): GoMove | "pass" {
     }
   }
   return best;
+}
+
+async function searchGoOnMainThread(
+  state: GoState,
+  difficulty: Difficulty,
+  signal: AbortSignal,
+): Promise<Extract<LocalWorkerReply, { readonly ok: true }>> {
+  const result = await searchLocalGo(state, difficulty, () => signal.aborted);
+  if (signal.aborted) throw abortError();
+  return { id: 0, ok: true, ...result };
 }
 
 class LocalGoWorkerClient {
@@ -427,11 +438,23 @@ export async function chooseGoMove(
       };
     } catch (error: unknown) {
       if (isAbortError(error) || controller.signal.aborted) throw abortError();
-      return {
-        move: deterministicEmergencyMove(state),
-        engine: "local",
-        detail: `本地 Worker 不可用，采用确定性合法落子；Worker 错误：${errorMessage(error)}；KataGo 未启用：${kataGoFallbackReason}`,
-      };
+      const workerError = errorMessage(error);
+      try {
+        const reply = await searchGoOnMainThread(state, difficulty, controller.signal);
+        const move = isLegalResult(state, reply.move) ? reply.move : deterministicEmergencyMove(state);
+        return {
+          move,
+          engine: "local",
+          detail: `本地 Worker 不可用，已在主线程完成本地搜索：深度 ${reply.depth}，检查 ${reply.nodes}/${reply.budget} 节点；Worker 错误：${workerError}；KataGo 未启用：${kataGoFallbackReason}`,
+        };
+      } catch (fallbackError: unknown) {
+        if (isAbortError(fallbackError) || controller.signal.aborted) throw abortError();
+        return {
+          move: deterministicEmergencyMove(state),
+          engine: "local",
+          detail: `本地搜索不可用，采用确定性合法落子；Worker 错误：${workerError}；主线程错误：${errorMessage(fallbackError)}；KataGo 未启用：${kataGoFallbackReason}`,
+        };
+      }
     }
   } finally {
     removeAbortListener();
