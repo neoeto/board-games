@@ -42,32 +42,34 @@ export function GoBoard({ state, disabled, onMove }: GoBoardProps) {
     <div className="board-scroll" aria-label="围棋棋盘，可横向滚动">
       <div className={`go-surface go-size-${state.size}`} style={style}>
         <div className="go-grid" role="group" aria-label={`${state.size} 路围棋棋盘`}>
-          {state.board.flatMap((row, y) =>
-            row.map((stone, x) => {
-              const isLast = state.lastMove !== null && state.lastMove !== "pass" && state.lastMove.x === x && state.lastMove.y === y;
-              const stoneName = stone === "black" ? "黑子" : stone === "white" ? "白子" : "空位";
-              return (
-                <button
-                  aria-label={`第 ${x + 1} 列，第 ${y + 1} 行，${stoneName}${isLast ? "，上一手" : ""}`}
-                  className={`go-point${isLast ? " is-last" : ""}`}
-                  data-point={`${x}-${y}`}
-                  style={{
-                    left: `${(x / (state.size - 1)) * 100}%`,
-                    top: `${(y / (state.size - 1)) * 100}%`,
-                  }}
-                  disabled={disabled}
-                  key={`${x}-${y}`}
-                  onClick={() => onMove({ x, y })}
-                  onKeyDown={(event) => focusNeighbor(event, state.size, x, y)}
-                  type="button"
-                >
-                  {isStarPoint(state.size, x, y) && !stone ? <span className="star-point" aria-hidden="true" /> : null}
-                  {stone ? <span className={`go-stone ${stone}`} aria-hidden="true" /> : null}
-                  {isLast && stone ? <span className="last-marker" aria-hidden="true" /> : null}
-                </button>
-              );
-            }),
-          )}
+          <div className="go-playfield">
+            {state.board.flatMap((row, y) =>
+              row.map((stone, x) => {
+                const isLast = state.lastMove !== null && state.lastMove !== "pass" && state.lastMove.x === x && state.lastMove.y === y;
+                const stoneName = stone === "black" ? "黑子" : stone === "white" ? "白子" : "空位";
+                return (
+                  <button
+                    aria-label={`第 ${x + 1} 列，第 ${y + 1} 行，${stoneName}${isLast ? "，上一手" : ""}`}
+                    className={`go-point${isLast ? " is-last" : ""}`}
+                    data-point={`${x}-${y}`}
+                    style={{
+                      left: `${(x / (state.size - 1)) * 100}%`,
+                      top: `${(y / (state.size - 1)) * 100}%`,
+                    }}
+                    disabled={disabled}
+                    key={`${x}-${y}`}
+                    onClick={() => onMove({ x, y })}
+                    onKeyDown={(event) => focusNeighbor(event, state.size, x, y)}
+                    type="button"
+                  >
+                    {isStarPoint(state.size, x, y) && !stone ? <span className="star-point" aria-hidden="true" /> : null}
+                    {stone ? <span className={`go-stone ${stone}`} aria-hidden="true" /> : null}
+                    {isLast && stone ? <span className="last-marker" aria-hidden="true" /> : null}
+                  </button>
+                );
+              }),
+            )}
+          </div>
         </div>
       </div>
     </div>

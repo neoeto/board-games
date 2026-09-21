@@ -565,7 +565,7 @@
   .go-grid::before {
     position: absolute;
     z-index: 0;
-    inset: 0;
+    inset: calc(var(--go-cell) / 2);
     background-image:
       linear-gradient(to right, rgb(57 37 18 / 72%) 1px, transparent 1px),
       linear-gradient(to bottom, rgb(57 37 18 / 72%) 1px, transparent 1px);
@@ -575,6 +575,11 @@
     border-bottom: 1px solid rgb(57 37 18 / 72%);
     content: "";
     pointer-events: none;
+  }
+
+  .go-playfield {
+    position: absolute;
+    inset: calc(var(--go-cell) / 2);
   }
 
   .go-point {
