@@ -137,7 +137,7 @@ function parseClientMessage(message: string): RoomClientMessage | null {
   if (message.length > MAX_CLIENT_MESSAGE_BYTES) return null;
   try {
     const value = JSON.parse(message) as Record<string, unknown>;
-    if (value.type === "pass" || value.type === "resign") return { type: value.type };
+    if (value.type === "sync" || value.type === "pass" || value.type === "resign") return { type: value.type };
     if (value.type === "move" && isMove(value.move)) return { type: "move", move: value.move };
     return null;
   } catch {
@@ -179,6 +179,11 @@ export class GameRoom extends DurableObject<Env> {
     if (!room || !attachment) return;
     const seat = this.seatForToken(room, attachment.token);
     if (!seat) return;
+
+    if (command.type === "sync") {
+      this.sendSnapshot(socket, room);
+      return;
+    }
 
     if (command.type === "resign") {
       await this.resign(room, seat.side);
@@ -352,7 +357,6 @@ export class GameRoom extends DurableObject<Env> {
     server.serializeAttachment({ token } satisfies SocketAttachment);
 
     const activeRoom = await this.startOrResume(room);
-    this.sendSnapshot(server, activeRoom);
     this.broadcast(activeRoom, server);
     console.info(JSON.stringify({
       event: "room_socket_connected",

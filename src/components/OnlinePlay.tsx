@@ -246,6 +246,7 @@ export function OnlinePlay({ game }: OnlinePlayProps) {
       socket.onopen = () => {
         attempt = 0;
         console.info("[online-room]", { event: "socket_open", roomId, side: seat.side });
+        socket?.send(JSON.stringify({ type: "sync" }));
         setConnection("connected");
       };
       socket.onmessage = (event) => {

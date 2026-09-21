@@ -58,6 +58,7 @@ export interface RoomPreview {
   readonly waitingExpiresAt: number;
 }
 export type RoomClientMessage =
+  | { readonly type: "sync" }
   | { readonly type: "move"; readonly move: GoMove | XiangqiMove }
   | { readonly type: "pass" }
   | { readonly type: "resign" };
