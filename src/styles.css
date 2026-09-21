@@ -689,8 +689,8 @@
     left: 37.5%;
     height: 22.222%;
     background-image:
-      linear-gradient(to bottom right, transparent calc(50% - 0.5px), rgb(57 37 18 / 70%) 50%, transparent calc(50% + 0.5px)),
-      linear-gradient(to bottom left, transparent calc(50% - 0.5px), rgb(57 37 18 / 70%) 50%, transparent calc(50% + 0.5px));
+      linear-gradient(to bottom right, transparent calc(50% - 0.75px), rgb(57 37 18 / 70%) calc(50% - 0.75px) calc(50% + 0.75px), transparent calc(50% + 0.75px)),
+      linear-gradient(to bottom left, transparent calc(50% - 0.75px), rgb(57 37 18 / 70%) calc(50% - 0.75px) calc(50% + 0.75px), transparent calc(50% + 0.75px));
     content: "";
   }
 
