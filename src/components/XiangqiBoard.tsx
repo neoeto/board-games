@@ -1,4 +1,4 @@
-import { useMemo, useState, type KeyboardEvent } from "react";
+import { useMemo, useState, type CSSProperties, type KeyboardEvent } from "react";
 import {
   getLegalXiangqiMoves,
   type XiangqiMove,
@@ -104,6 +104,12 @@ export function XiangqiBoard({ state, disabled, onMove, onMessage }: XiangqiBoar
               const isTarget = targets.has(`${x}-${y}`);
               const isLastFrom = samePosition(state.lastMove?.from ?? null, position);
               const isLastTo = samePosition(state.lastMove?.to ?? null, position);
+              const arrivalStyle = isLastTo && state.lastMove
+                ? {
+                    "--move-x": `${(state.lastMove.from.x - x) * 125}%`,
+                    "--move-y": `${(state.lastMove.from.y - y) * 125}%`,
+                  } as CSSProperties
+                : undefined;
               const label = piece
                 ? `${piece.side === "red" ? "红方" : "黑方"}${piece.side === "red" ? RED_LABELS[piece.type] : BLACK_LABELS[piece.type]}`
                 : "空位";
@@ -120,7 +126,11 @@ export function XiangqiBoard({ state, disabled, onMove, onMessage }: XiangqiBoar
                   type="button"
                 >
                   {piece ? (
-                    <span className={`xiangqi-piece ${piece.side}`} aria-hidden="true">
+                    <span
+                      className={`xiangqi-piece ${piece.side}${isLastTo ? " is-arriving" : ""}`}
+                      aria-hidden="true"
+                      style={arrivalStyle}
+                    >
                       {piece.side === "red" ? RED_LABELS[piece.type] : BLACK_LABELS[piece.type]}
                     </span>
                   ) : null}

@@ -419,6 +419,23 @@
     to { transform: translateX(125%); }
   }
 
+  @keyframes xiangqi-piece-arrive {
+    0% {
+      opacity: 0.72;
+      transform: translate(var(--move-x), var(--move-y)) scale(0.92);
+    }
+
+    62% {
+      opacity: 1;
+      transform: translate(0, 0) scale(1.05);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translate(0, 0) scale(1);
+    }
+  }
+
   .metrics {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -722,6 +739,11 @@
       inset 0 0 0 2px #e8ce94,
       inset 0 0 0 3px currentcolor,
       2px 4px 6px rgb(64 37 14 / 40%);
+  }
+
+  .xiangqi-piece.is-arriving {
+    animation: xiangqi-piece-arrive 420ms cubic-bezier(0.22, 0.8, 0.28, 1) both;
+    will-change: transform, opacity;
   }
 
   .xiangqi-piece.red {
