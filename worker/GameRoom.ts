@@ -316,10 +316,6 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   private async connectWebSocket(request: Request): Promise<Response> {
-    const origin = request.headers.get("Origin");
-    if (origin && origin !== new URL(request.url).origin) {
-      return json({ error: { code: "FORBIDDEN", message: "Cross-origin connections are not allowed." } }, 403);
-    }
     const token = parseSeatToken(request);
     if (!token) {
       return json({ error: { code: "UNAUTHORIZED", message: "A valid player seat is required." } }, 401);
