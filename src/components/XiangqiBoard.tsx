@@ -109,19 +109,19 @@ export function XiangqiBoard({ state, disabled, onMove, onMessage, playerSide = 
               const position = { x, y };
               const isSelected = samePosition(selected, position);
               const isTarget = targets.has(`${x}-${y}`);
+              const displayX = flipped ? 8 - x : x;
+              const displayY = flipped ? 9 - y : y;
               const isLastFrom = samePosition(state.lastMove?.from ?? null, position);
               const isLastTo = samePosition(state.lastMove?.to ?? null, position);
               const arrivalStyle = isLastTo && state.lastMove
                 ? {
-                    "--move-x": `${(state.lastMove.from.x - x) * 125}%`,
-                    "--move-y": `${(state.lastMove.from.y - y) * 125}%`,
+                    "--move-x": `${((flipped ? 8 - state.lastMove.from.x : state.lastMove.from.x) - displayX) * 125}%`,
+                    "--move-y": `${((flipped ? 9 - state.lastMove.from.y : state.lastMove.from.y) - displayY) * 125}%`,
                   } as CSSProperties
                 : undefined;
               const label = piece
                 ? `${piece.side === "red" ? "红方" : "黑方"}${piece.side === "red" ? RED_LABELS[piece.type] : BLACK_LABELS[piece.type]}`
                 : "空位";
-              const displayX = flipped ? 8 - x : x;
-              const displayY = flipped ? 9 - y : y;
               return (
                 <button
                   aria-label={`第 ${displayX + 1} 路，第 ${10 - displayY} 线，${label}${isSelected ? "，已选择" : ""}${isTarget ? "，可走" : ""}`}
