@@ -95,6 +95,7 @@ export function XiangqiBoard({ state, disabled, onMove, onMessage }: XiangqiBoar
   return (
     <div className="board-scroll" aria-label="中国象棋棋盘，可横向滚动">
       <div className="xiangqi-surface">
+        <div className="palace-lines" aria-hidden="true" />
         <div className="river" aria-hidden="true"><span>楚河</span><span>漢界</span></div>
         <div className="xiangqi-grid" role="group" aria-label="中国象棋棋盘，红方在下">
           {state.board.flatMap((row, y) =>
@@ -119,6 +120,10 @@ export function XiangqiBoard({ state, disabled, onMove, onMessage }: XiangqiBoar
                   aria-pressed={isSelected}
                   className={`xiangqi-square${isSelected ? " is-selected" : ""}${isTarget ? " is-target" : ""}${isLastFrom || isLastTo ? " is-last" : ""}`}
                   data-square={`${x}-${y}`}
+                  style={{
+                    left: `${(x / 8) * 100}%`,
+                    top: `${(y / 9) * 100}%`,
+                  }}
                   disabled={disabled}
                   key={`${x}-${y}`}
                   onClick={() => handleSquare(position)}
