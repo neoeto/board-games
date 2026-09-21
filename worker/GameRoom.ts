@@ -183,23 +183,11 @@ export class GameRoom extends DurableObject<Env> {
     await this.move(room, seat.side, command.move, socket);
   }
 
-  async webSocketClose(socket: WebSocket, code: number, reason: string, wasClean: boolean): Promise<void> {
-    console.info(JSON.stringify({
-      event: "room_socket_closed",
-      room: this.ctx.id.toString(),
-      code,
-      reason,
-      wasClean,
-    }));
+  async webSocketClose(socket: WebSocket): Promise<void> {
     await this.handleDisconnect(socket);
   }
 
-  async webSocketError(socket: WebSocket, error: unknown): Promise<void> {
-    console.warn(JSON.stringify({
-      event: "room_socket_error",
-      room: this.ctx.id.toString(),
-      message: error instanceof Error ? error.message : String(error),
-    }));
+  async webSocketError(socket: WebSocket): Promise<void> {
     await this.handleDisconnect(socket);
   }
 
@@ -345,13 +333,6 @@ export class GameRoom extends DurableObject<Env> {
 
     const activeRoom = await this.startOrResume(room);
     this.broadcast(activeRoom, server);
-    console.info(JSON.stringify({
-      event: "room_socket_connected",
-      room: this.ctx.id.toString(),
-      side: seat.side,
-      phase: activeRoom.phase,
-      connectedSides: this.connectedSides(activeRoom),
-    }));
     return new Response(null, { status: 101, webSocket: client });
   }
 
@@ -438,22 +419,12 @@ export class GameRoom extends DurableObject<Env> {
 
   private async handleDisconnect(socket: WebSocket): Promise<void> {
     const attachment = attachmentFor(socket);
-    if (!attachment) {
-      console.warn(JSON.stringify({ event: "room_socket_attachment_missing", room: this.ctx.id.toString() }));
-      return;
-    }
+    if (!attachment) return;
     const room = await this.loadRoom();
     if (!room || room.phase !== "playing") return;
     const seat = this.seatForToken(room, attachment.token);
     if (!seat) return;
-    if (this.hasLiveConnection(attachment.token, socket)) {
-      console.info(JSON.stringify({
-        event: "room_socket_replaced",
-        room: this.ctx.id.toString(),
-        side: seat.side,
-      }));
-      return;
-    }
+    if (this.hasLiveConnection(attachment.token, socket)) return;
     if (room.disconnectExpiresAt !== null && room.disconnectedSide === seat.side) return;
 
     const disconnectExpiresAt = Date.now() + DISCONNECT_GRACE_MS;
@@ -464,13 +435,6 @@ export class GameRoom extends DurableObject<Env> {
     };
     await this.saveRoom(next);
     await this.ctx.storage.setAlarm(disconnectExpiresAt);
-    console.info(JSON.stringify({
-      event: "room_disconnect_grace_started",
-      room: this.ctx.id.toString(),
-      side: seat.side,
-      connectedSides: this.connectedSides(next),
-      disconnectExpiresAt,
-    }));
     this.broadcast(next, socket);
   }
 

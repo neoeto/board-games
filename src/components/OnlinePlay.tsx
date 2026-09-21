@@ -233,20 +233,16 @@ export function OnlinePlay({ game }: OnlinePlayProps) {
     let reconnectTimer: number | undefined;
     let attempt = 0;
     let socket: WebSocket | null = null;
-    let opened = false;
 
 
     const connect = () => {
       if (disposed) return;
-      opened = false;
       setConnection(attempt === 0 ? "connecting" : "reconnecting");
       socket = new WebSocket(websocketUrl(roomId, seat.token));
       socketRef.current = socket;
       socket.onopen = () => {
-        opened = true;
 
         attempt = 0;
-        console.info("[online-room]", { event: "socket_open", roomId, side: seat.side });
         socket?.send(JSON.stringify({ type: "sync" }));
         setConnection("connected");
       };
@@ -256,13 +252,6 @@ export function OnlinePlay({ game }: OnlinePlayProps) {
           const message: unknown = JSON.parse(event.data);
           if (!isRoomMessage(message)) return;
           if (message.type === "snapshot") {
-            console.info("[online-room]", {
-              event: "snapshot",
-              roomId,
-              phase: message.snapshot.phase,
-              seats: message.snapshot.seats,
-              disconnectedSide: message.snapshot.disconnectedSide,
-            });
             setSnapshot(message.snapshot);
             setError(null);
           } else {
@@ -272,22 +261,8 @@ export function OnlinePlay({ game }: OnlinePlayProps) {
           setError("收到无效的房间同步消息。");
         }
       };
-      socket.onerror = () => {
-        console.warn("[online-room]", { event: "socket_error", roomId, side: seat.side });
-      };
-      socket.onclose = (event) => {
+      socket.onclose = () => {
         if (disposed) return;
-        console.warn("[online-room]", {
-          event: "socket_close",
-          roomId,
-          side: seat.side,
-          code: event.code,
-          reason: event.reason,
-          wasClean: event.wasClean,
-        });
-        if (!opened) {
-          setError("实时 WebSocket 未能建立。当前网络代理必须允许 wss://board-games.marching-tech.com:443 的 CONNECT/Upgrade；请将该域名加入代理绕过或白名单后重试。");
-        }
         attempt += 1;
         if (attempt > MAX_RECONNECT_ATTEMPTS) {
           setConnection("closed");
@@ -337,7 +312,6 @@ export function OnlinePlay({ game }: OnlinePlayProps) {
       setRoomId(body.roomId);
       setSeat(body.seat);
       setSnapshot(body.snapshot);
-      console.info("[online-room]", { event: "room_created", roomId: body.roomId, side: body.seat.side });
       setScreen("room");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "创建房间失败。");
@@ -359,7 +333,6 @@ export function OnlinePlay({ game }: OnlinePlayProps) {
       persistSeat(roomId, joined.seat);
       setSeat(joined.seat);
       setSnapshot(joined.snapshot);
-      console.info("[online-room]", { event: "room_joined", roomId, side: joined.seat.side });
       setScreen("room");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "加入房间失败。");
