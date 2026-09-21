@@ -13,7 +13,6 @@ const ERROR_HEADERS = Object.freeze({
 });
 
 const ROOM_PATH = /^\/api\/rooms\/([a-f0-9]{32})$/;
-const ROOM_OPERATION_PATH = /^\/api\/rooms\/([a-f0-9]{32})\/(state|command)$/;
 
 function withIsolationHeaders(response: Response): Response {
   const headers = new Headers(response.headers);
@@ -46,11 +45,6 @@ function errorResponse(
 
 function roomIdForPath(pathname: string): string | null {
   return ROOM_PATH.exec(pathname)?.[1] ?? null;
-}
-
-function roomOperationForPath(pathname: string): { readonly roomId: string; readonly operation: "state" | "command" } | null {
-  const match = ROOM_OPERATION_PATH.exec(pathname);
-  return match ? { roomId: match[1], operation: match[2] as "state" | "command" } : null;
 }
 
 async function createRoom(request: Request, env: Env): Promise<Response> {
@@ -91,32 +85,6 @@ async function previewRoom(request: Request, roomId: string, env: Env): Promise<
   return withIsolationHeaders(await env.GAME_ROOM.getByName(roomId).fetch(roomRequest));
 }
 
-async function roomState(request: Request, roomId: string, env: Env): Promise<Response> {
-  if (request.method !== "GET") {
-    return errorResponse(request, 405, "METHOD_NOT_ALLOWED", "Room state requires GET.");
-  }
-  const source = new URL(request.url);
-  const roomUrl = new URL("https://room.internal/state");
-  roomUrl.search = source.search;
-  return withIsolationHeaders(await env.GAME_ROOM.getByName(roomId).fetch(roomUrl));
-}
-
-async function roomCommand(request: Request, roomId: string, env: Env): Promise<Response> {
-  if (request.method !== "POST") {
-    return errorResponse(request, 405, "METHOD_NOT_ALLOWED", "Room commands require POST.");
-  }
-  const contentLength = Number(request.headers.get("content-length") ?? "0");
-  if (!Number.isFinite(contentLength) || contentLength > 8_192) {
-    return errorResponse(request, 400, "BAD_REQUEST", "The room command is too large.");
-  }
-  const roomRequest = new Request("https://room.internal/command", {
-    method: "POST",
-    headers: { "content-type": request.headers.get("content-type") ?? "application/json" },
-    body: request.body,
-  });
-  return withIsolationHeaders(await env.GAME_ROOM.getByName(roomId).fetch(roomRequest));
-}
-
 async function connectRoom(request: Request, roomId: string, env: Env): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(request, 405, "METHOD_NOT_ALLOWED", "Room sockets require GET.");
@@ -132,12 +100,6 @@ export default {
     const url = new URL(request.url);
     try {
       if (url.pathname === "/api/rooms") return await createRoom(request, env);
-      const operation = roomOperationForPath(url.pathname);
-      if (operation) {
-        return operation.operation === "state"
-          ? await roomState(request, operation.roomId, env)
-          : await roomCommand(request, operation.roomId, env);
-      }
       const roomId = roomIdForPath(url.pathname);
       if (roomId) {
         if (request.headers.get("Upgrade")?.toLowerCase() === "websocket") {

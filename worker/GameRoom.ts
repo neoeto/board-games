@@ -31,11 +31,8 @@ const WAITING_ROOM_DURATION_MS = 15 * 60 * 1_000;
 const DISCONNECT_GRACE_MS = 2 * 60 * 1_000;
 const POSTGAME_DURATION_MS = 15 * 60 * 1_000;
 const MAX_CLIENT_MESSAGE_BYTES = 8_192;
-const POLL_PRESENCE_WINDOW_MS = 8_000;
 
-interface StoredSeat extends RoomSeatSession {
-  readonly lastSeenAt: number | null;
-}
+interface StoredSeat extends RoomSeatSession {}
 
 interface StoredRoom {
   readonly configuration: RoomConfiguration;
@@ -57,11 +54,6 @@ interface CreateRoomRequest {
 
 interface SocketAttachment {
   readonly token: string;
-}
-
-interface CommandRequest {
-  readonly token: string;
-  readonly command: RoomClientMessage;
 }
 
 function json(body: unknown, status = 200): Response {
@@ -128,31 +120,13 @@ function isMove(value: unknown): value is GoMove | XiangqiMove {
   );
 }
 
-function parseClientCommand(value: unknown): RoomClientMessage | null {
-  if (!value || typeof value !== "object") return null;
-  const candidate = value as Record<string, unknown>;
-  if (candidate.type === "sync" || candidate.type === "pass" || candidate.type === "resign") {
-    return { type: candidate.type };
-  }
-  return candidate.type === "move" && isMove(candidate.move) ? { type: "move", move: candidate.move } : null;
-}
-
 function parseClientMessage(message: string): RoomClientMessage | null {
   if (message.length > MAX_CLIENT_MESSAGE_BYTES) return null;
   try {
-    return parseClientCommand(JSON.parse(message));
-  } catch {
-    return null;
-  }
-}
-
-function parseCommandRequest(message: string): CommandRequest | null {
-  if (message.length > MAX_CLIENT_MESSAGE_BYTES) return null;
-  try {
     const value = JSON.parse(message) as Record<string, unknown>;
-    const token = value.token;
-    const command = parseClientCommand(value.command);
-    return typeof token === "string" && /^[a-f0-9]{32}$/.test(token) && command ? { token, command } : null;
+    if (value.type === "sync" || value.type === "pass" || value.type === "resign") return { type: value.type };
+    if (value.type === "move" && isMove(value.move)) return { type: "move", move: value.move };
+    return null;
   } catch {
     return null;
   }
@@ -169,12 +143,6 @@ export class GameRoom extends DurableObject<Env> {
     }
     if (request.method === "POST" && url.pathname === "/join") {
       return this.join();
-    }
-    if (request.method === "GET" && url.pathname === "/state") {
-      return this.state(request);
-    }
-    if (request.method === "POST" && url.pathname === "/command") {
-      return this.command(request);
     }
     if (request.method === "GET" && request.headers.get("Upgrade")?.toLowerCase() === "websocket") {
       return this.connectWebSocket(request);
@@ -204,12 +172,15 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
 
-    const error = command.type === "resign"
-      ? await this.resign(room, seat.side)
-      : command.type === "pass"
-        ? await this.pass(room, seat.side)
-        : await this.move(room, seat.side, command.move);
-    if (error) this.sendError(socket, error);
+    if (command.type === "resign") {
+      await this.resign(room, seat.side);
+      return;
+    }
+    if (command.type === "pass") {
+      await this.pass(room, seat.side, socket);
+      return;
+    }
+    await this.move(room, seat.side, command.move, socket);
   }
 
   async webSocketClose(socket: WebSocket, code: number, reason: string, wasClean: boolean): Promise<void> {
@@ -256,19 +227,6 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
 
-    if (room.phase === "playing" && room.disconnectExpiresAt === null) {
-      const connectedSides = this.connectedSides(room);
-      if (connectedSides.length < 2) {
-        await this.startDisconnectGrace(
-          room,
-          connectedSides.length === 1 ? otherSeatSide(room, connectedSides[0]) : room.seats[0].side,
-        );
-      } else {
-        await this.schedulePresenceAlarm(room);
-      }
-      return;
-    }
-
     if (
       (room.phase === "finished" || room.phase === "abandoned" || room.phase === "expired") &&
       room.postgameExpiresAt !== null && now >= room.postgameExpiresAt
@@ -298,7 +256,7 @@ export class GameRoom extends DurableObject<Env> {
       goSize: input.game === "go" ? input.goSize ?? null : null,
       hostSide: input.hostSide,
     };
-    const host: StoredSeat = { token: randomToken(), side: configuration.hostSide, lastSeenAt: null };
+    const host: StoredSeat = { token: randomToken(), side: configuration.hostSide };
     const waitingExpiresAt = Date.now() + WAITING_ROOM_DURATION_MS;
     const room: StoredRoom = {
       configuration,
@@ -340,45 +298,6 @@ export class GameRoom extends DurableObject<Env> {
     return json(preview);
   }
 
-  private async state(request: Request): Promise<Response> {
-    const token = parseSeatToken(request);
-    if (!token) return json({ error: { code: "UNAUTHORIZED", message: "A valid player seat is required." } }, 401);
-    const room = await this.loadRoom();
-    if (!room) return json({ error: { code: "NOT_FOUND", message: "The room does not exist." } }, 404);
-    if (await this.expireWaitingRoomIfDue(room)) {
-      return json({ error: { code: "ROOM_EXPIRED", message: "This room has expired." } }, 410);
-    }
-    if (!this.seatForToken(room, token)) {
-      return json({ error: { code: "UNAUTHORIZED", message: "This browser does not hold a player seat." } }, 401);
-    }
-    return json(this.snapshot(await this.touchSeat(room, token)));
-  }
-
-  private async command(request: Request): Promise<Response> {
-    const input = parseCommandRequest(await request.text());
-    if (!input) return json({ error: { code: "BAD_REQUEST", message: "Invalid room command." } }, 400);
-    const room = await this.loadRoom();
-    if (!room) return json({ error: { code: "NOT_FOUND", message: "The room does not exist." } }, 404);
-    if (await this.expireWaitingRoomIfDue(room)) {
-      return json({ error: { code: "ROOM_EXPIRED", message: "This room has expired." } }, 410);
-    }
-    const seat = this.seatForToken(room, input.token);
-    if (!seat) {
-      return json({ error: { code: "UNAUTHORIZED", message: "This browser does not hold a player seat." } }, 401);
-    }
-
-    const activeRoom = await this.touchSeat(room, input.token);
-    const error = input.command.type === "sync"
-      ? null
-      : input.command.type === "resign"
-        ? await this.resign(activeRoom, seat.side)
-        : input.command.type === "pass"
-          ? await this.pass(activeRoom, seat.side)
-          : await this.move(activeRoom, seat.side, input.command.move);
-    if (error) return json({ error: { code: "INVALID_COMMAND", message: error } }, 409);
-    return json(this.snapshot((await this.loadRoom()) ?? activeRoom));
-  }
-
   private async join(): Promise<Response> {
     const room = await this.loadRoom();
     if (!room) return json({ error: { code: "NOT_FOUND", message: "The room does not exist." } }, 404);
@@ -392,7 +311,7 @@ export class GameRoom extends DurableObject<Env> {
       return json({ error: { code: "ROOM_FULL", message: "Both player seats are already assigned." } }, 409);
     }
 
-    const guest: StoredSeat = { token: randomToken(), side: otherSide(room.configuration), lastSeenAt: null };
+    const guest: StoredSeat = { token: randomToken(), side: otherSide(room.configuration) };
     const next: StoredRoom = { ...room, seats: [room.seats[0], guest] };
     await this.saveRoom(next);
     this.broadcast(next);
@@ -440,13 +359,23 @@ export class GameRoom extends DurableObject<Env> {
     room: StoredRoom,
     side: OnlineSide,
     move: GoMove | XiangqiMove,
-  ): Promise<string | null> {
-    if (!this.canPlay(room, side)) return "当前不能落子，请等待双方连接并轮到你行棋。";
+    socket: WebSocket,
+  ): Promise<void> {
+    if (!this.canPlay(room, side)) {
+      this.sendError(socket, "当前不能落子，请等待双方连接并轮到你行棋。");
+      return;
+    }
 
     if (room.configuration.game === "go") {
-      if (!isGoMove(move)) return "围棋着法格式无效。";
+      if (!isGoMove(move)) {
+        this.sendError(socket, "围棋着法格式无效。");
+        return;
+      }
       const result = playGoMove(room.gameState as GoState, move);
-      if (!result.ok) return result.error;
+      if (!result.ok) {
+        this.sendError(socket, result.error);
+        return;
+      }
       const next = { ...room, gameState: result.state };
       if (result.state.status === "finished") {
         await this.finish(next, { winner: result.state.score?.winner ?? null, reason: "rule" }, "finished");
@@ -454,12 +383,18 @@ export class GameRoom extends DurableObject<Env> {
         await this.saveRoom(next);
         this.broadcast(next);
       }
-      return null;
+      return;
     }
 
-    if (!isXiangqiMove(move)) return "象棋着法格式无效。";
+    if (!isXiangqiMove(move)) {
+      this.sendError(socket, "象棋着法格式无效。");
+      return;
+    }
     const result = playXiangqiMove(room.gameState as XiangqiState, move);
-    if (!result.ok) return result.error;
+    if (!result.ok) {
+      this.sendError(socket, result.error);
+      return;
+    }
     const next = { ...room, gameState: result.state };
     if (result.state.status !== "playing") {
       await this.finish(
@@ -471,14 +406,22 @@ export class GameRoom extends DurableObject<Env> {
       await this.saveRoom(next);
       this.broadcast(next);
     }
-    return null;
   }
 
-  private async pass(room: StoredRoom, side: OnlineSide): Promise<string | null> {
-    if (room.configuration.game !== "go") return "只有围棋可以停一手。";
-    if (!this.canPlay(room, side)) return "当前不能停一手，请等待双方连接并轮到你行棋。";
+  private async pass(room: StoredRoom, side: OnlineSide, socket: WebSocket): Promise<void> {
+    if (room.configuration.game !== "go") {
+      this.sendError(socket, "只有围棋可以停一手。");
+      return;
+    }
+    if (!this.canPlay(room, side)) {
+      this.sendError(socket, "当前不能停一手，请等待双方连接并轮到你行棋。");
+      return;
+    }
     const result = playGoMove(room.gameState as GoState, "pass");
-    if (!result.ok) return result.error;
+    if (!result.ok) {
+      this.sendError(socket, result.error);
+      return;
+    }
     const next = { ...room, gameState: result.state };
     if (result.state.status === "finished") {
       await this.finish(next, { winner: result.state.score?.winner ?? null, reason: "rule" }, "finished");
@@ -486,13 +429,11 @@ export class GameRoom extends DurableObject<Env> {
       await this.saveRoom(next);
       this.broadcast(next);
     }
-    return null;
   }
 
-  private async resign(room: StoredRoom, side: OnlineSide): Promise<string | null> {
-    if (room.phase !== "playing") return "当前不能认输。";
+  private async resign(room: StoredRoom, side: OnlineSide): Promise<void> {
+    if (room.phase !== "playing") return;
     await this.finish(room, { winner: otherSeatSide(room, side), reason: "resignation" }, "finished");
-    return null;
   }
 
   private async handleDisconnect(socket: WebSocket): Promise<void> {
@@ -514,7 +455,23 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
     if (room.disconnectExpiresAt !== null && room.disconnectedSide === seat.side) return;
-    await this.startDisconnectGrace(room, seat.side, socket);
+
+    const disconnectExpiresAt = Date.now() + DISCONNECT_GRACE_MS;
+    const next: StoredRoom = {
+      ...room,
+      disconnectExpiresAt,
+      disconnectedSide: seat.side,
+    };
+    await this.saveRoom(next);
+    await this.ctx.storage.setAlarm(disconnectExpiresAt);
+    console.info(JSON.stringify({
+      event: "room_disconnect_grace_started",
+      room: this.ctx.id.toString(),
+      side: seat.side,
+      connectedSides: this.connectedSides(next),
+      disconnectExpiresAt,
+    }));
+    this.broadcast(next, socket);
   }
 
   private async startOrResume(room: StoredRoom): Promise<StoredRoom> {
@@ -533,7 +490,6 @@ export class GameRoom extends DurableObject<Env> {
     };
     await this.saveRoom(next);
     await this.ctx.storage.deleteAlarm();
-    await this.schedulePresenceAlarm(next);
     return next;
   }
 
@@ -541,7 +497,6 @@ export class GameRoom extends DurableObject<Env> {
     const next: StoredRoom = { ...room, disconnectExpiresAt: null, disconnectedSide: null };
     await this.saveRoom(next);
     await this.ctx.storage.deleteAlarm();
-    await this.schedulePresenceAlarm(next);
     this.broadcast(next);
     return next;
   }
@@ -570,69 +525,18 @@ export class GameRoom extends DurableObject<Env> {
     return true;
   }
 
-  private async touchSeat(room: StoredRoom, token: string): Promise<StoredRoom> {
-    const seenAt = Date.now();
-    const host = room.seats[0].token === token ? { ...room.seats[0], lastSeenAt: seenAt } : room.seats[0];
-    const guest = room.seats[1]?.token === token ? { ...room.seats[1], lastSeenAt: seenAt } : room.seats[1];
-    const touched: StoredRoom = { ...room, seats: [host, guest] };
-    await this.saveRoom(touched);
-    const activeRoom = await this.startOrResume(touched);
-    await this.schedulePresenceAlarm(activeRoom);
-    return activeRoom;
-  }
-
-  private async startDisconnectGrace(room: StoredRoom, side: OnlineSide, excluded?: WebSocket): Promise<void> {
-    if (room.disconnectExpiresAt !== null) return;
-    const disconnectExpiresAt = Date.now() + DISCONNECT_GRACE_MS;
-    const next: StoredRoom = {
-      ...room,
-      disconnectExpiresAt,
-      disconnectedSide: side,
-    };
-    await this.saveRoom(next);
-    await this.ctx.storage.setAlarm(disconnectExpiresAt);
-    console.info(JSON.stringify({
-      event: "room_disconnect_grace_started",
-      room: this.ctx.id.toString(),
-      side,
-      connectedSides: this.connectedSides(next),
-      disconnectExpiresAt,
-    }));
-    this.broadcast(next, excluded);
-  }
-
-  private async schedulePresenceAlarm(room: StoredRoom): Promise<void> {
-    if (room.phase !== "playing" || room.disconnectExpiresAt !== null) return;
-    const liveTokens = this.liveConnectionTokens();
-    const deadlines = room.seats.flatMap((seat) => {
-      if (!seat || liveTokens.has(seat.token) || seat.lastSeenAt === null) return [];
-      return [seat.lastSeenAt + POLL_PRESENCE_WINDOW_MS];
-    });
-    if (deadlines.length > 0) await this.ctx.storage.setAlarm(Math.min(...deadlines));
-  }
-
   private canPlay(room: StoredRoom, side: OnlineSide): boolean {
     if (room.phase !== "playing" || this.connectedSides(room).length !== 2) return false;
     return room.gameState.turn === side;
   }
 
   private connectedSides(room: StoredRoom): OnlineSide[] {
-    const connected = this.liveConnectionTokens();
-    const activeSince = Date.now() - POLL_PRESENCE_WINDOW_MS;
-    return room.seats.flatMap((seat) => {
-      if (!seat) return [];
-      const isPolling = seat.lastSeenAt !== null && seat.lastSeenAt >= activeSince;
-      return connected.has(seat.token) || isPolling ? [seat.side] : [];
-    });
-  }
-
-  private liveConnectionTokens(): Set<string> {
     const connected = new Set<string>();
     for (const socket of this.ctx.getWebSockets()) {
       const attachment = attachmentFor(socket);
       if (attachment) connected.add(attachment.token);
     }
-    return connected;
+    return room.seats.flatMap((seat) => seat && connected.has(seat.token) ? [seat.side] : []);
   }
 
   private hasLiveConnection(token: string, ignored: WebSocket): boolean {
