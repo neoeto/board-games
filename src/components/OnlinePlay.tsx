@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { GoBoard } from "./GoBoard";
 import { XiangqiBoard } from "./XiangqiBoard";
 import type { GoColor, GoMove, GoState } from "../games/go";
@@ -11,7 +11,6 @@ import {
   type RoomConfiguration,
   type RoomPreview,
   type RoomSeatSession,
-  type RoomServerMessage,
   type RoomSnapshot,
 } from "../online/protocol";
 
@@ -33,7 +32,6 @@ interface OnlinePlayProps {
 }
 
 const ROOM_ID_PATTERN = /^[a-f0-9]{32}$/;
-const MAX_RECONNECT_ATTEMPTS = 120;
 
 function roomStorageKey(roomId: string): string {
   return `just-go.online.room.${roomId}`;
@@ -105,12 +103,6 @@ function isRoomPreview(value: unknown): value is RoomPreview {
   return isRoomConfiguration(preview.configuration) && typeof preview.waitingExpiresAt === "number";
 }
 
-function isRoomMessage(value: unknown): value is RoomServerMessage {
-  if (!value || typeof value !== "object") return false;
-  const message = value as Record<string, unknown>;
-  return message.type === "error" && typeof message.message === "string" ||
-    message.type === "snapshot" && isRoomSnapshot(message.snapshot);
-}
 
 function errorText(value: unknown, fallback: string): string {
   if (!value || typeof value !== "object") return fallback;
@@ -120,12 +112,6 @@ function errorText(value: unknown, fallback: string): string {
   return typeof message === "string" ? message : fallback;
 }
 
-function websocketUrl(roomId: string, token: string): string {
-  const url = new URL(`/api/rooms/${roomId}`, window.location.href);
-  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-  url.searchParams.set("seat", token);
-  return url.href;
-}
 
 function gameName(game: OnlineGameId): string {
   return game === "go" ? "围棋" : "中国象棋";
@@ -193,7 +179,6 @@ export function OnlinePlay({ game }: OnlinePlayProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
-  const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     setHostSide(game === "go" ? "black" : "red");
@@ -230,79 +215,42 @@ export function OnlinePlay({ game }: OnlinePlayProps) {
   useEffect(() => {
     if (screen !== "room" || !roomId || !seat) return;
     let disposed = false;
-    let reconnectTimer: number | undefined;
-    let attempt = 0;
-    let socket: WebSocket | null = null;
+    let pollTimer: number | undefined;
 
-    const connect = () => {
+    const poll = async () => {
       if (disposed) return;
-      setConnection(attempt === 0 ? "connecting" : "reconnecting");
-      socket = new WebSocket(websocketUrl(roomId, seat.token));
-      socketRef.current = socket;
-      socket.onopen = () => {
-        attempt = 0;
-        console.info("[online-room]", { event: "socket_open", roomId, side: seat.side });
-        socket?.send(JSON.stringify({ type: "sync" }));
-        setConnection("connected");
-      };
-      socket.onmessage = (event) => {
-        if (typeof event.data !== "string") return;
-        try {
-          const message: unknown = JSON.parse(event.data);
-          if (!isRoomMessage(message)) return;
-          if (message.type === "snapshot") {
-            console.info("[online-room]", {
-              event: "snapshot",
-              roomId,
-              phase: message.snapshot.phase,
-              seats: message.snapshot.seats,
-              disconnectedSide: message.snapshot.disconnectedSide,
-            });
-            setSnapshot(message.snapshot);
-            setError(null);
-          } else {
-            setError(message.message);
-          }
-        } catch {
-          setError("收到无效的房间同步消息。");
-        }
-      };
-      socket.onerror = () => {
-        console.warn("[online-room]", { event: "socket_error", roomId, side: seat.side });
-      };
-      socket.onclose = (event) => {
+      try {
+        const url = new URL(`/api/rooms/${roomId}/state`, window.location.href);
+        url.searchParams.set("seat", seat.token);
+        const response = await fetch(url);
+        const body: unknown = await response.json().catch(() => null);
+        if (!response.ok) throw new Error(errorText(body, "无法同步房间状态。"));
+        if (!isRoomSnapshot(body)) throw new Error("服务器返回了无效的房间状态。");
         if (disposed) return;
-        console.warn("[online-room]", {
-          event: "socket_close",
-          roomId,
-          side: seat.side,
-          code: event.code,
-          reason: event.reason,
-          wasClean: event.wasClean,
-        });
-        attempt += 1;
-        if (attempt > MAX_RECONNECT_ATTEMPTS) {
-          setConnection("closed");
-          setError("两分钟内未能恢复房间连接。请确认仍使用原浏览器资料后重试。");
-          return;
+        setSnapshot(body);
+        setConnection("connected");
+        setError(null);
+      } catch (reason) {
+        if (!disposed) {
+          setConnection("reconnecting");
+          setError(reason instanceof Error ? reason.message : "无法同步房间状态。");
         }
-        setConnection("reconnecting");
-        reconnectTimer = window.setTimeout(connect, 1_000);
-      };
+      } finally {
+        if (!disposed) pollTimer = window.setTimeout(() => void poll(), 1_500);
+      }
     };
 
-    connect();
+    setConnection("connecting");
+    void poll();
     return () => {
       disposed = true;
-      if (reconnectTimer !== undefined) window.clearTimeout(reconnectTimer);
-      socketRef.current = null;
-      socket?.close(1000, "Leaving room");
+      if (pollTimer !== undefined) window.clearTimeout(pollTimer);
     };
   }, [roomId, screen, seat]);
 
   const activeGame = snapshot?.configuration.game ?? game;
   const ownSide = seat?.side ?? hostSide;
-  const canPlay = connection === "connected" && snapshot?.phase === "playing" &&
+  const canPlay = connection === "connected" && !busy && snapshot?.phase === "playing" &&
     snapshot.gameState.turn === ownSide && snapshot.disconnectedSide === null;
   const inviteUrl = roomId ? new URL(`?room=${roomId}`, window.location.href).href : null;
 
@@ -384,11 +332,27 @@ export function OnlinePlay({ game }: OnlinePlayProps) {
   }
 
   function send(command: { readonly type: "move"; readonly move: GoMove | XiangqiMove } | { readonly type: "pass" } | { readonly type: "resign" }): void {
-    if (socketRef.current?.readyState !== WebSocket.OPEN) {
-      setError("连接尚未就绪，请等待重连完成。");
+    if (!roomId || !seat || connection !== "connected" || busy) {
+      setError("连接尚未就绪，请等待同步完成。");
       return;
     }
-    socketRef.current.send(JSON.stringify(command));
+    setBusy(true);
+    void fetch(`/api/rooms/${roomId}/command`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token: seat.token, command }),
+    })
+      .then(async (response) => {
+        const body: unknown = await response.json().catch(() => null);
+        if (!response.ok) throw new Error(errorText(body, "提交棋步失败。"));
+        if (!isRoomSnapshot(body)) throw new Error("服务器返回了无效的房间状态。");
+        setSnapshot(body);
+        setError(null);
+      })
+      .catch((reason: unknown) => {
+        setError(reason instanceof Error ? reason.message : "提交棋步失败。");
+      })
+      .finally(() => setBusy(false));
   }
 
   function playGoMove(move: GoMove): void {
