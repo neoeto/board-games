@@ -5,6 +5,7 @@ import {
   type XiangqiState,
 } from "../../games/xiangqi";
 import { chooseWithPikafish } from "./pikafishClient";
+import { searchXiangqiLocally } from "./localSearch";
 
 export interface XiangqiAiChoice {
   readonly move: XiangqiMove;
@@ -48,6 +49,27 @@ function sameMove(left: XiangqiMove, right: XiangqiMove): boolean {
     left.to.y === right.to.y
   );
 }
+function chooseOnMainThread(
+  state: XiangqiState,
+  difficulty: Difficulty,
+  signal?: AbortSignal,
+): XiangqiAiChoice {
+  if (signal?.aborted) throw abortError();
+
+  const response = searchXiangqiLocally(state, difficulty);
+  if (signal?.aborted) throw abortError();
+
+  const legalMoves = getLegalXiangqiMoves(state);
+  if (!legalMoves.some((move) => sameMove(move, response.move))) {
+    throw new Error("本地象棋引擎返回了非法着法");
+  }
+
+  return {
+    move: response.move,
+    engine: "local",
+    detail: `浏览器本地搜索 · 主线程回退 · ${response.depth} 层 · ${response.nodes} 节点`,
+  };
+}
 
 function chooseLocally(
   state: XiangqiState,
@@ -58,10 +80,16 @@ function chooseLocally(
     return Promise.reject(abortError());
   }
 
-  const worker = new Worker(new URL("./localSearch.worker.ts", import.meta.url), {
-    type: "module",
-    name: "xiangqi-local-search",
-  });
+  let worker: Worker;
+  try {
+    worker = new Worker(new URL("./localSearch.worker.ts", import.meta.url), {
+      type: "module",
+      name: "xiangqi-local-search",
+    });
+  } catch {
+    return Promise.resolve().then(() => chooseOnMainThread(state, difficulty, signal));
+  }
+
   const id = nextRequestId++;
 
   return new Promise((resolve, reject) => {
@@ -77,12 +105,20 @@ function chooseLocally(
       finish();
       reject(error);
     };
+    const fallback = () => {
+      if (settled) return;
+      settled = true;
+      finish();
+      try {
+        resolve(chooseOnMainThread(state, difficulty, signal));
+      } catch (error) {
+        reject(error);
+      }
+    };
     const onAbort = () => fail(abortError());
 
     signal?.addEventListener("abort", onAbort, { once: true });
-    worker.onerror = (event) => {
-      fail(new Error(event.message || "本地象棋引擎启动失败"));
-    };
+    worker.onerror = () => fallback();
     worker.onmessage = (event: MessageEvent<LocalResponse>) => {
       const response = event.data;
       if (settled || response.id !== id) return;
@@ -107,7 +143,11 @@ function chooseLocally(
     };
 
     const request: LocalRequest = { id, state, difficulty };
-    worker.postMessage(request);
+    try {
+      worker.postMessage(request);
+    } catch {
+      fallback();
+    }
   });
 }
 
