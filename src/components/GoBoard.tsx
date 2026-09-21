@@ -51,6 +51,10 @@ export function GoBoard({ state, disabled, onMove }: GoBoardProps) {
                   aria-label={`第 ${x + 1} 列，第 ${y + 1} 行，${stoneName}${isLast ? "，上一手" : ""}`}
                   className={`go-point${isLast ? " is-last" : ""}`}
                   data-point={`${x}-${y}`}
+                  style={{
+                    left: `${(x / (state.size - 1)) * 100}%`,
+                    top: `${(y / (state.size - 1)) * 100}%`,
+                  }}
                   disabled={disabled}
                   key={`${x}-${y}`}
                   onClick={() => onMove({ x, y })}
