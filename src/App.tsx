@@ -276,23 +276,7 @@ function App() {
 
   return (
     <div className="app-shell">
-      <header className="site-header">
-        <div className="brand" aria-label="弈室首页">
-          <span className="brand-mark" aria-hidden="true">弈</span>
-          <span><strong>弈室</strong><small>JUST GO</small></span>
-        </div>
-        <p>{mode === "online" ? "实时房间由服务器裁决，同一浏览器资料可自动重连。" : "规则与电脑均在本机浏览器运行。"}</p>
-      </header>
-
       <main className="main-content">
-        <section className="game-heading" aria-labelledby="page-title">
-          <div>
-            <p className="kicker">两种古典棋局，一张安静棋桌</p>
-            <h1 id="page-title">围棋与中国象棋</h1>
-          </div>
-          <p>{mode === "online" ? "创建私密房间，与受邀对手在同一张棋桌上实时对弈。" : "无需账户，无需联网对局。你执先手，电脑在浏览器内应战。"}</p>
-        </section>
-
         <nav className="game-tabs" aria-label="选择棋类">
           <button aria-pressed={game === "go"} className={game === "go" ? "is-active" : ""} onClick={() => chooseGame("go")} type="button">
             <span>圍棋</span><small>GO</small>

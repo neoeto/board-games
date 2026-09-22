@@ -96,32 +96,17 @@
     box-shadow: 0 0 80px rgb(50 32 15 / 24%);
   }
 
-  .site-header {
-    display: flex;
-    min-height: 74px;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    padding: 12px clamp(20px, 4vw, 62px);
-    border-bottom: 1px solid var(--line);
-  }
 
   .main-content {
-    padding: clamp(34px, 5vw, 72px) clamp(18px, 5vw, 76px) clamp(52px, 7vw, 96px);
+    padding: clamp(18px, 2vw, 32px) clamp(18px, 5vw, 76px) clamp(52px, 7vw, 96px);
   }
 
-  .game-heading {
-    display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(240px, 0.55fr);
-    align-items: end;
-    gap: 32px clamp(36px, 8vw, 130px);
-  }
 
   .game-tabs {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     max-width: 600px;
-    margin-top: clamp(34px, 5vw, 62px);
+    margin-top: 0;
     border: 1px solid var(--line);
   }
 
@@ -162,45 +147,13 @@
 }
 
 @layer components {
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
 
-  .brand-mark {
-    display: grid;
-    width: 38px;
-    height: 38px;
-    place-items: center;
-    color: #fff8e9;
-    background: var(--forest);
-    border-radius: var(--radius);
-    font-family: "Songti SC", "STSong", serif;
-    font-size: 1.2rem;
-    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 20%);
-  }
-
-  .brand > span:last-child {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-  }
-
-  .brand strong,
-  .game-heading h1,
   .control-heading h2,
   .board-title strong {
     font-family: "Songti SC", "STSong", "Noto Serif CJK SC", Georgia, serif;
   }
 
-  .brand strong {
-    font-size: 1.08rem;
-    letter-spacing: 0.16em;
-  }
 
-  .brand small,
-  .site-header > p,
   .kicker,
   .status-label,
   .engine-report > span,
@@ -210,34 +163,11 @@
     letter-spacing: 0.14em;
   }
 
-  .brand small {
-    color: var(--muted);
-    font-size: 0.5rem;
-  }
-
-  .site-header > p {
-    color: var(--muted);
-  }
 
   .kicker {
     color: var(--forest-bright);
   }
 
-  .game-heading h1 {
-    margin-top: 12px;
-    font-size: clamp(2.6rem, 5vw, 5.6rem);
-    font-weight: 500;
-    letter-spacing: -0.06em;
-    line-height: 0.98;
-  }
-
-  .game-heading > p {
-    max-width: 32ch;
-    padding-bottom: 0.4rem;
-    color: var(--muted);
-    font-size: 0.96rem;
-    line-height: 1.75;
-  }
 
   .game-tabs button {
     display: flex;
@@ -1035,24 +965,8 @@
   }
 
   @media (max-width: 680px) {
-    .site-header {
-      min-height: 66px;
-    }
-
-    .site-header > p {
-      display: none;
-    }
-
     .main-content {
-      padding-top: 30px;
-    }
-
-    .game-heading {
-      grid-template-columns: 1fr;
-    }
-
-    .game-heading > p {
-      padding: 0;
+      padding-top: 18px;
     }
 
     .game-tabs {
