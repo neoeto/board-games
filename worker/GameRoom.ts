@@ -1,4 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
+import { ACTIVE_ROOM_REGISTRY_NAME } from "./ActiveRoomRegistry";
+
 import {
   createGoState,
   playGoMove,
@@ -31,10 +33,14 @@ const WAITING_ROOM_DURATION_MS = 15 * 60 * 1_000;
 const DISCONNECT_GRACE_MS = 2 * 60 * 1_000;
 const POSTGAME_DURATION_MS = 15 * 60 * 1_000;
 const MAX_CLIENT_MESSAGE_BYTES = 8_192;
+const CAPACITY_RELEASE_RETRY_MS = 30_000;
 
 interface StoredSeat extends RoomSeatSession {}
 
 interface StoredRoom {
+  readonly roomId: string | null;
+  readonly capacityReleased: boolean;
+  readonly capacityReleaseRetryAt: number | null;
   readonly configuration: RoomConfiguration;
   readonly gameState: OnlineGameState;
   readonly seats: readonly [StoredSeat, StoredSeat | null];
@@ -192,7 +198,7 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   async alarm(): Promise<void> {
-    const room = await this.loadRoom();
+    let room = await this.loadRoom();
     if (!room) return;
     const now = Date.now();
 
@@ -215,10 +221,13 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
 
-    if (
-      (room.phase === "finished" || room.phase === "abandoned" || room.phase === "expired") &&
-      room.postgameExpiresAt !== null && now >= room.postgameExpiresAt
-    ) {
+    if (room.phase !== "finished" && room.phase !== "abandoned" && room.phase !== "expired") return;
+    if (typeof room.capacityReleaseRetryAt === "number" && now >= room.capacityReleaseRetryAt) {
+      room = await this.releaseCapacity(room);
+    }
+    if (room.postgameExpiresAt !== null && now >= room.postgameExpiresAt) {
+      room = await this.releaseCapacity(room);
+      if (!room.capacityReleased) return;
       await this.ctx.storage.delete(ROOM_KEY);
       for (const socket of this.ctx.getWebSockets()) socket.close(4001, "Room expired");
     }
@@ -247,6 +256,9 @@ export class GameRoom extends DurableObject<Env> {
     const host: StoredSeat = { token: randomToken(), side: configuration.hostSide };
     const waitingExpiresAt = Date.now() + WAITING_ROOM_DURATION_MS;
     const room: StoredRoom = {
+      roomId,
+      capacityReleased: false,
+      capacityReleaseRetryAt: null,
       configuration,
       gameState: configuration.game === "go"
         ? createGoState(configuration.goSize ?? 9)
@@ -469,6 +481,8 @@ export class GameRoom extends DurableObject<Env> {
     const postgameExpiresAt = Date.now() + POSTGAME_DURATION_MS;
     const next: StoredRoom = {
       ...room,
+      capacityReleased: !room.roomId,
+      capacityReleaseRetryAt: null,
       phase,
       waitingExpiresAt: null,
       disconnectExpiresAt: null,
@@ -478,7 +492,34 @@ export class GameRoom extends DurableObject<Env> {
     };
     await this.saveRoom(next);
     await this.ctx.storage.setAlarm(postgameExpiresAt);
-    this.broadcast(next);
+    this.broadcast(await this.releaseCapacity(next));
+  }
+
+  private async releaseCapacity(room: StoredRoom): Promise<StoredRoom> {
+    if (room.capacityReleased) return room;
+    if (!room.roomId) {
+      const released: StoredRoom = { ...room, capacityReleased: true, capacityReleaseRetryAt: null };
+      await this.saveRoom(released);
+      return released;
+    }
+    try {
+      const response = await this.env.ACTIVE_ROOM_REGISTRY.getByName(ACTIVE_ROOM_REGISTRY_NAME).fetch(
+        new Request("https://capacity.internal/release", {
+          method: "POST",
+          headers: { "x-game-room-id": room.roomId },
+        }),
+      );
+      if (!response.ok) throw new Error("Room capacity release failed.");
+      const released: StoredRoom = { ...room, capacityReleased: true, capacityReleaseRetryAt: null };
+      await this.saveRoom(released);
+      return released;
+    } catch {
+      const capacityReleaseRetryAt = Date.now() + CAPACITY_RELEASE_RETRY_MS;
+      const pending: StoredRoom = { ...room, capacityReleaseRetryAt };
+      await this.saveRoom(pending);
+      await this.ctx.storage.setAlarm(Math.min(room.postgameExpiresAt ?? capacityReleaseRetryAt, capacityReleaseRetryAt));
+      return pending;
+    }
   }
 
   private async expireWaitingRoomIfDue(room: StoredRoom): Promise<boolean> {

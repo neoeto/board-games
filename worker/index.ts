@@ -1,3 +1,6 @@
+import { ACTIVE_ROOM_REGISTRY_NAME } from "./ActiveRoomRegistry";
+
+export { ActiveRoomRegistry } from "./ActiveRoomRegistry";
 export { GameRoom } from "./GameRoom";
 
 const ISOLATION_HEADERS = Object.freeze({
@@ -13,6 +16,7 @@ const ERROR_HEADERS = Object.freeze({
 });
 
 const ROOM_PATH = /^\/api\/rooms\/([a-f0-9]{32})$/;
+const MAX_ACTIVE_ROOMS_PATTERN = /^[1-9]\d*$/;
 
 function withIsolationHeaders(response: Response): Response {
   const headers = new Headers(response.headers);
@@ -36,7 +40,7 @@ function isHtmlOrWorkerResponse(response: Response): boolean {
 function errorResponse(
   request: Request,
   status: 400 | 404 | 405 | 426 | 500,
-  code: "BAD_REQUEST" | "METHOD_NOT_ALLOWED" | "NOT_FOUND" | "UPGRADE_REQUIRED" | "INTERNAL_ERROR",
+  code: "BAD_REQUEST" | "INVALID_CONFIGURATION" | "METHOD_NOT_ALLOWED" | "NOT_FOUND" | "UPGRADE_REQUIRED" | "INTERNAL_ERROR",
   message: string,
 ): Response {
   const body = request.method === "HEAD" ? null : JSON.stringify({ error: { code, message } });
@@ -47,6 +51,27 @@ function roomIdForPath(pathname: string): string | null {
   return ROOM_PATH.exec(pathname)?.[1] ?? null;
 }
 
+function activeRoomLimit(env: Env): number | null {
+  const value = env.MAX_ACTIVE_ROOMS;
+  return MAX_ACTIVE_ROOMS_PATTERN.test(value) && Number.isSafeInteger(Number(value)) ? Number(value) : null;
+}
+
+function capacityRequest(operation: "reserve" | "release", roomId: string, maxActiveRooms?: number): Request {
+  const headers = new Headers({ "x-game-room-id": roomId });
+  if (maxActiveRooms !== undefined) headers.set("x-max-active-rooms", String(maxActiveRooms));
+  return new Request(`https://capacity.internal/${operation}`, { method: "POST", headers });
+}
+
+async function reserveActiveRoom(env: Env, roomId: string, maxActiveRooms: number): Promise<Response> {
+  return env.ACTIVE_ROOM_REGISTRY.getByName(ACTIVE_ROOM_REGISTRY_NAME)
+    .fetch(capacityRequest("reserve", roomId, maxActiveRooms));
+}
+
+async function releaseActiveRoom(env: Env, roomId: string): Promise<void> {
+  await env.ACTIVE_ROOM_REGISTRY.getByName(ACTIVE_ROOM_REGISTRY_NAME)
+    .fetch(capacityRequest("release", roomId));
+}
+
 async function createRoom(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") {
     return errorResponse(request, 405, "METHOD_NOT_ALLOWED", "Rooms must be created with POST.");
@@ -55,8 +80,15 @@ async function createRoom(request: Request, env: Env): Promise<Response> {
   if (!Number.isFinite(contentLength) || contentLength > 1_024) {
     return errorResponse(request, 400, "BAD_REQUEST", "The room configuration is too large.");
   }
+  const maxActiveRooms = activeRoomLimit(env);
+  if (maxActiveRooms === null) {
+    return errorResponse(request, 500, "INVALID_CONFIGURATION", "MAX_ACTIVE_ROOMS must be a positive integer.");
+  }
 
   const roomId = crypto.randomUUID().replaceAll("-", "");
+  const reservation = await reserveActiveRoom(env, roomId, maxActiveRooms);
+  if (!reservation.ok) return withIsolationHeaders(reservation);
+
   const requestHeaders = new Headers({
     "content-type": request.headers.get("content-type") ?? "application/json",
     "x-game-room-id": roomId,
@@ -66,7 +98,14 @@ async function createRoom(request: Request, env: Env): Promise<Response> {
     headers: requestHeaders,
     body: request.body,
   });
-  return withIsolationHeaders(await env.GAME_ROOM.getByName(roomId).fetch(roomRequest));
+  try {
+    const response = await env.GAME_ROOM.getByName(roomId).fetch(roomRequest);
+    if (!response.ok) await releaseActiveRoom(env, roomId);
+    return withIsolationHeaders(response);
+  } catch (error) {
+    await releaseActiveRoom(env, roomId);
+    throw error;
+  }
 }
 
 async function joinRoom(request: Request, roomId: string, env: Env): Promise<Response> {
